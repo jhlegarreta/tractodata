@@ -5,21 +5,24 @@ import os
 import sys
 import contextlib
 
+import tarfile
+import zipfile
+
+import nibabel as nib
+
 from os.path import join as pjoin
 from hashlib import sha256
 from shutil import copyfileobj
 
-import tarfile
-import zipfile
-
 from urllib.request import urlopen
 
-from dipy.core.gradients import (gradient_table,
-                                 gradient_table_from_gradient_strength_bvecs)
+from dipy.core.gradients import \
+    (gradient_table)  # , gradient_table_from_gradient_strength_bvecs)
 from dipy.io.gradients import read_bvals_bvecs
-from dipy.io.image import load_nifti, load_nifti_data
+# from dipy.io.image import load_nifti, load_nifti_data
+from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.streamline import load_tractogram
-from dipy.tracking.streamline import Streamlines
+# from dipy.tracking.streamline import Streamlines
 
 
 # Set a user-writeable file-system location to put files:
@@ -36,7 +39,7 @@ TRACTODATA_CONFIG_URL = \
     "https://raw.githubusercontent.com/jhlegarreta/tractodata/master/config/"
 
 
-class Datasets(enum.Enum):
+class Dataset(enum.Enum):
     FIBERCUP_ANAT = "fibercup_anat"
     FIBERCUP_DWI = "fibercup_dwi"
     FIBERCUP_TRACTOGRAPHY = "fibercup_tractography"
@@ -57,7 +60,9 @@ def update_progressbar(progress, total_length):
 
     Takes a number between 0 and 1 to indicate progress from 0 to 100%.
     """
+
     # Try to set the bar_length according to the console size
+    # noinspection PyBroadException
     try:
         columns = os.popen("tput cols", "r").read()
         bar_length = int(columns) - 46
@@ -75,6 +80,7 @@ def update_progressbar(progress, total_length):
 
 
 def copyfileobj_withprogress(fsrc, fdst, total_length, length=16 * 1024):
+
     copied = 0
     while True:
         buf = fsrc.read(length)
@@ -87,62 +93,65 @@ def copyfileobj_withprogress(fsrc, fdst, total_length, length=16 * 1024):
 
 
 def _already_there_msg(folder):
-    """Print a message indicating that dataset is already in place."""
+    """Print a message indicating that dataset is already in place.
+    """
+
     msg = "Dataset is already in place. If you want to fetch it again "
-    msg += "please first remove the folder %s " % folder
+    msg += "please first remove the folder {}".format(folder)
     print(msg)
 
 
-def _get_file_sha(filename):
-    """Generate SHA checksum for the entire file in blocks of 256.
+def _get_file_hash(filename):
+    """Generate an SHA hash for the entire file in blocks of 256.
 
     Parameters
     ----------
     filename : str
-        The path to the file whose SHA checksum is to be generated
+        The path to the file whose SHA hash is to be generated.
 
     Returns
     -------
-    sha256_data : str
-        The computed SHA hash from the input file
-
+    hash256_data : str
+        The computed SHA hash from the input file.
     """
-    sha256_data = sha256()
+
+    hash256_data = sha256()
     with open(filename, "rb") as f:
-        for chunk in iter(lambda: f.read(256*sha256_data.block_size), b""):
-            sha256_data.update(chunk)
-    return sha256_data.hexdigest()
+        for chunk in iter(lambda: f.read(256*hash256_data.block_size), b""):
+            hash256_data.update(chunk)
+    return hash256_data.hexdigest()
 
 
-def check_sha(filename, stored_sha256=None):
-    """Check the generated SHA checksum.
+def check_hash(filename, stored_hash=None):
+    """Check that the hash of the given filename equals the stored one.
 
     Parameters
     ----------
     filename : str
-        The path to the file whose checksum is to be compared
-    stored_sha256 : str, optional
-        Used to verify the generated SHA checksum.
-        Default: None, checking is skipped
-
+        The path to the file whose hash is to be compared.
+    stored_hash : str, optional
+        Used to verify the generated hash.
+        Default: None, checking is skipped.
     """
-    if stored_sha256 is not None:
-        computed_sha256 = _get_file_sha(filename)
-        if stored_sha256.lower() != computed_sha256:
-            msg = """The downloaded file, %s,
+
+    if stored_hash is not None:
+        computed_hash = _get_file_hash(filename)
+        if stored_hash.lower() != computed_hash:
+            msg = """The downloaded file, {},
              does not have the expected SHA
-            checksum of "%s".
-             Instead, the SHA checksum was: "%s".
+            checksum of {}".
+             Instead, the SHA checksum was: {}.
              This could mean that
             something is wrong with the file
              or that the upstream file has been updated.
             You can try downloading the file again
              or updating to the newest version of
-            Fury.""" % (filename, stored_sha256, computed_sha256)
+            Fury.""".format(filename, stored_hash, computed_hash)
             raise FetcherError(msg)
 
 
 def _get_file_data(fname, url):
+
     with contextlib.closing(urlopen(url)) as opener:
         try:
             response_size = opener.headers["content-length"]
@@ -157,14 +166,14 @@ def _get_file_data(fname, url):
 
 
 def fetch_data(files, folder, data_size=None):
-    """Download files to folder and checks their SHA checksums.
+    """Download files to folder and checks their hashes.
 
     Parameters
     ----------
     files : dictionary
-        For each file in ``files`` the value should be (url, SHA). The file will
-        be downloaded from url if the file does not already exist or if the
-        file exists but the SHA checksum does not match.
+        For each file in ``files`` the value should be (url, SHA). The file
+        will be downloaded from url if the file does not already exist or if
+        the file exists but the SHA checksum does not match.
     folder : str
         The directory where to save the file, the directory will be created if
         it does not already exist.
@@ -175,35 +184,35 @@ def fetch_data(files, folder, data_size=None):
     Raises
     ------
     FetcherError
-
-        Raises if the SHA checksum of the file does not match the expected
-        value. The downloaded file is not deleted when this error is raised.
+        Raises if the SHA hash of the file does not match the expected value.
+        The downloaded file is not deleted when this error is raised.
     """
+
     if not os.path.exists(folder):
-        print("Creating new folder %s" % (folder))
+        print("Creating new folder {}".format(folder))
         os.makedirs(folder)
 
     if data_size is not None:
-        print("Data size is approximately %s" % data_size)
+        print("Data size is approximately {}".format(data_size))
 
     all_skip = True
     for f in files:
-        url, sha = files[f]
+        url, _hash = files[f]
         fullpath = pjoin(folder, f)
-        if os.path.exists(fullpath) and (_get_file_sha(fullpath) == sha.lower()):
+        if os.path.exists(fullpath) and (_get_file_hash(fullpath) == _hash.lower()):  # noqa E501
             continue
         all_skip = False
-        print("Downloading "%s" to %s" % (f, folder))
+        print("Downloading {} to {}".format(f, folder))
         _get_file_data(fullpath, url)
-        check_sha(fullpath, sha)
+        check_hash(fullpath, _hash)
     if all_skip:
         _already_there_msg(folder)
     else:
-        print("Files successfully downloaded to %s" % (folder))
+        print("Files successfully downloaded to {}".format(folder))
 
 
 def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
-                  sha_list=None, doc="", data_size=None, msg=None,
+                  hash_list=None, doc="", data_size=None, msg=None,
                   unzip=False):
     """Create a new fetcher.
 
@@ -220,9 +229,9 @@ def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
         The names of the files in the baseurl location.
     local_fnames : list of strings
         The names of the files to be saved on the local filesystem.
-    sha_list : list of strings, optional
-        The SHA checksums of the files. Used to verify the content of the
-        files. Default: None, skipping checking SHA.
+    hash_list : list of strings, optional
+        The SHA hashes of the files. Used to verify the content of the files.
+        Default: None, skipping checking hash.
     doc : str, optional.
         Documentation of the fetcher.
     data_size : str, optional.
@@ -245,8 +254,8 @@ def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
     def fetcher():
         files = {}
         for i, (f, n), in enumerate(zip(remote_fnames, local_fnames)):
-            files[n] = (baseurl + f, sha_list[i] if
-                        sha_list is not None else None)
+            files[n] = (baseurl + f, hash_list[i] if
+                        hash_list is not None else None)
         fetch_data(files, folder, data_size)
 
         if msg is not None:
@@ -278,24 +287,26 @@ def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
 fetch_fibercup_anat = _make_fetcher(
     "fetch_fibercup_anat",
     pjoin(tractodata_home, "datasets", "fibercup", "raw", "sub-01", "anat"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/fibercup" + "/raw" + "/sub-01" + "/anat",
+    TRACTODATA_DATASETS_URL + "datasets/" + "fibercup/" + "raw/" +
+    "sub-01/" + "anat/",
     ["T1w.nii.gz"],
     ["T1w.nii.gz"],
-    ["file1_SHA"],
+    ["179642a6dc4cbd594ecca3522c85c0270e1fc800eae637cb6b502a5c2376d0f7"],
     data_size="12KB",
     doc="Download Fiber Cup dataset anatomy data",
-    unzip=True
+    unzip=False
     )
 
 fetch_fibercup_dwi = _make_fetcher(
     "fetch_fibercup_dwi",
     pjoin(tractodata_home, "datasets", "fibercup", "raw", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/fibercup" + "/raw" + "/sub-01" + "/dwi",
+    TRACTODATA_DATASETS_URL + "datasets/" + "fibercup/" + "raw/" +
+    "sub-01/" + "dwi/",
     ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
     ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
-    ["file1_SHA"],
-    ["file2_SHA"],
-    ["file3_SHA"],
+    ["file1_SHA",
+     "file2_SHA",
+     "file3_SHA"],
     data_size="12KB",
     doc="Download Fiber Cup dataset diffusion data",
     unzip=True
@@ -303,17 +314,22 @@ fetch_fibercup_dwi = _make_fetcher(
 
 fetch_fibercup_tractography = _make_fetcher(
     "fetch_fibercup_tractography",
-    pjoin(tractodata_home, "datasets", "fibercup", "derivatives", "tractography", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/fibercup" + "/derivatives" + "/tractography" + "/sub-01" + "/dwi",
-    ["bundle_1.trk", "bundle_2.trk", "bundle_3.trk", "bundle_4.trk", "bundle_5.trk", "bundle_6.trk", "bundle_7.trk"],
-    ["bundle_1.trk", "bundle_2.trk", "bundle_3.trk", "bundle_4.trk", "bundle_5.trk", "bundle_6.trk", "bundle_7.trk"],
-    ["file1_SHA"],
-    ["file2_SHA"],
-    ["file3_SHA"],
-    ["file4_SHA"],
-    ["file5_SHA"],
-    ["file6_SHA"],
-    ["file7_SHA"],
+    pjoin(
+        tractodata_home, "datasets", "fibercup", "derivatives", "tractography",
+        "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "datasets/" + "fibercup/" + "derivatives/" +
+    "tractography/" + "sub-01/" + "dwi/",
+    ["bundle_1.trk", "bundle_2.trk", "bundle_3.trk", "bundle_4.trk",
+     "bundle_5.trk", "bundle_6.trk", "bundle_7.trk"],
+    ["bundle_1.trk", "bundle_2.trk", "bundle_3.trk", "bundle_4.trk",
+     "bundle_5.trk", "bundle_6.trk", "bundle_7.trk"],
+    ["file1_SHA",
+     "file2_SHA",
+     "file3_SHA",
+     "file4_SHA",
+     "file5_SHA",
+     "file6_SHA",
+     "file7_SHA"],
     data_size="12KB",
     doc="Download Fiber Cup dataset tractography data",
     unzip=True
@@ -322,25 +338,27 @@ fetch_fibercup_tractography = _make_fetcher(
 fetch_isbi2013_anat = _make_fetcher(
     "fetch_isbi2013_anat",
     pjoin(tractodata_home, "datasets", "isbi2013", "raw", "sub-01", "anat"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/isbi2013" + "/raw" + "/sub-01" + "/anat",
+    TRACTODATA_DATASETS_URL + "datasets/" + "isbi2013/" + "raw/" +
+    "sub-01/" + "anat/",
     ["T1w.nii.gz"],
     ["T1w.nii.gz"],
-    ["file_SHA"],
-    ["file_SHA"],
+    ["file_SHA",
+     "file_SHA"],
     data_size="12KB",
-    doc="Download ISBI 2013 HARDI Reconstruction Challenge dataset anatomy data",
-    unzip=True
+    doc="Download ISBI 2013 HARDI Reconstruction Challenge dataset anatomy data",  # noqa E501
+    unzip=False
     )
 
 fetch_isbi2013_dwi = _make_fetcher(
     "fetch_isbi2013_dwi",
     pjoin(tractodata_home, "datasets", "isbi2013", "raw", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/isbi2013" + "/raw" + "/sub-01" + "/dwi",
+    TRACTODATA_DATASETS_URL + "datasets/" + "isbi2013/" + "raw/" +
+    "sub-01/" + "dwi/",
     ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
     ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
-    ["file1_SHA"],
-    ["file2_SHA"],
-    ["file3_SHA"],
+    ["file1_SHA",
+     "file2_SHA",
+     "file3_SHA"],
     data_size="12KB",
     doc="Download ISBI 2013 HARDI Reconstruction Challenge diffusion data",
     unzip=True
@@ -348,13 +366,16 @@ fetch_isbi2013_dwi = _make_fetcher(
 
 fetch_isbi2013_tractography = _make_fetcher(
     "fetch_isbi2013_tractography",
-    pjoin(tractodata_home, "datasets", "isbi2013", "derivatives", "tractography", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/isbi2013" + "/derivatives" + "/tractography" + "/sub-01" + "/dwi",
+    pjoin(
+        tractodata_home, "datasets", "isbi2013", "derivatives", "tractography",
+        "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "datasets/" + "isbi2013/" + "derivatives/" +
+    "tractography/" + "sub-01/" + "dwi/",
     ["trk", "trk", "trk"],
     ["trk", "trk", "trk"],
-    ["file1_SHA"],
-    ["file2_SHA"],
-    ["file3_SHA"],
+    ["file1_SHA",
+     "file2_SHA",
+     "file3_SHA"],
     data_size="12KB",
     doc="Download ISBI 2013 HARDI Reconstruction Challenge tractography data",
     unzip=True
@@ -364,24 +385,26 @@ fetch_isbi2013_tractography = _make_fetcher(
 fetch_ismrm2015_anat = _make_fetcher(
     "fetch_ismrm2015_anat",
     pjoin(tractodata_home, "datasets", "ismrm2015", "raw", "sub-01", "anat"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/ismrm2015" + "/raw" + "/sub-01" + "/anat",
+    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "raw/" +
+    "sub-01/" + "anat/",
     ["T1w.nii.gz"],
     ["T1w.nii.gz"],
     ["file1_SHA"],
     data_size="12KB",
     doc="Download ISMRM 2015 Tractography Challenge dataset anatomy data",
-    unzip=True
+    unzip=False
     )
 
 fetch_ismrm2015_dwi = _make_fetcher(
     "fetch_ismrm2015_dwi",
     pjoin(tractodata_home, "datasets", "ismrm2015", "raw", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/ismrm2015_tractography_challenge" + "/raw" + "/sub-01" + "/dwi",
+    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "raw/" +
+    "sub-01/" + "dwi/",
     ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
     ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
-    ["file1_SHA"],
-    ["file2_SHA"],
-    ["file3_SHA"],
+    ["file1_SHA",
+     "file2_SHA",
+     "file3_SHA"],
     data_size="12KB",
     doc="Download ISMRM 2015 Tractography Challenge dataset diffusion data",
     unzip=True
@@ -389,8 +412,11 @@ fetch_ismrm2015_dwi = _make_fetcher(
 
 fetch_ismrm2015_tractography = _make_fetcher(
     "fetch_ismrm2015_tractography",
-    pjoin(tractodata_home, "datasets", "ismrm2015", "derivatives", "tractography", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/ismrm2015" + "/derivatives" + "/tractography" + "/sub-01" + "/dwi",
+    pjoin(
+        tractodata_home, "datasets", "ismrm2015", "derivatives",
+        "tractography", "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "derivatives/" +
+    "tractography/" + "sub-01/" + "dwi/",
     ["CC.trk",
      "Cingulum_left.trk",
      "Cingulum_right.trk",
@@ -441,31 +467,31 @@ fetch_ismrm2015_tractography = _make_fetcher(
      "UF_right.trk",
      "CST.trk",
      "OR.trk"],
-    ["file1_SHA"],
-    ["file2_SHA"],
-    ["file3_SHA"],
-    ["file4_SHA"],
-    ["file5_SHA"],
-    ["file6_SHA"],
-    ["file7_SHA"],
-    ["file8_SHA"],
-    ["file9_SHA"],
-    ["file10_SHA"],
-    ["file11_SHA"],
-    ["file12_SHA"],
-    ["file13_SHA"],
-    ["file14_SHA"],
-    ["file15_SHA"],
-    ["file16_SHA"],
-    ["file17_SHA"],
-    ["file18_SHA"],
-    ["file19_SHA"],
-    ["file20_SHA"],
-    ["file21_SHA"],
-    ["file22_SHA"],
-    ["file23_SHA"],
-    ["file24_SHA"],
-    ["file25_SHA"],
+    ["file1_SHA",
+     "file2_SHA"
+     "file3_SHA",
+     "file4_SHA",
+     "file5_SHA",
+     "file6_SHA",
+     "file7_SHA",
+     "file8_SHA",
+     "file9_SHA",
+     "file10_SHA",
+     "file11_SHA",
+     "file12_SHA",
+     "file13_SHA",
+     "file14_SHA",
+     "file15_SHA",
+     "file16_SHA",
+     "file17_SHA",
+     "file18_SHA",
+     "file19_SHA",
+     "file20_SHA",
+     "file21_SHA",
+     "file22_SHA",
+     "file23_SHA",
+     "file24_SHA",
+     "file25_SHA"],
     data_size="12KB",
     doc="Download ISMRM 2015 Tractography Challenge tractography data",
     unzip=True
@@ -473,599 +499,605 @@ fetch_ismrm2015_tractography = _make_fetcher(
 
 fetch_ismrm2015_qb = _make_fetcher(
     "fetch_ismrm2015_qb",
-    pjoin(tractodata_home, "datasets", "ismrm2015", "derivatives", "qb", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/ismrm2015" + "/derivatives" + "/qb" + "/sub-01" + "/dwi",
+    pjoin(
+        tractodata_home, "datasets", "ismrm2015", "derivatives", "qb",
+        "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "derivatives/" +
+    "qb/" + "sub-01/" + "dwi/",
     ["bundles_attributes.json"],
     ["bundles_attributes.json"],
     ["file1_SHA"],
     data_size="12KB",
-    doc="Download ISMRM 2015 Tractography Challenge QuickBundles centroid config data",
+    doc="Download ISMRM 2015 Tractography Challenge QuickBundles centroid config data",  # noqa E501
     unzip=True
     )
 
 fetch_ismrm2015_submission_res = _make_fetcher(
     "fetch_ismrm2015_submission_res",
-    pjoin(tractodata_home, "datasets", "ismrm2015", "derivatives", "submissions", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "/datasets" + "/ismrm2015" + "/derivatives" + "/submissions" + "/sub-01" + "/dwi",
+    pjoin(
+        tractodata_home, "datasets", "ismrm2015", "derivatives", "submissions",
+        "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "derivatives/" +
+    "submissions/" + "sub-01/" + "dwi/",
     ["ismrm2015_tractography_challenge_overall_results.csv",
-     "ismrm2015_tractography_challenge_submission1-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission1-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission1-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission1-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission1-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission2-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission2-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission4-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission4-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission5-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission5-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission5-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission5-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission7-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission7-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission7-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission7-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission7-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission7-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission7-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission7-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission8-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission8-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-5_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-5_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-6_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-6_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-7_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-7_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-8_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-8_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-9_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-9_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-10_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-10_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-11_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-11_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-12_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-12_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-13_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-13_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-14_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-14_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-15_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-15_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-16_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-16_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-17_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-17_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-18_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-18_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-19_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-19_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission11-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission11-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission11-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission11-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission12-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission12-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission12-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission12-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission12-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission12-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission12-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission12-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission13-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission13-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission13-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission13-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission13-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission13-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission13-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission13-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission14-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission14-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission14-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission14-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission14-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission14-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission15-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission15-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission19-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission19-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission19-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission19-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission19-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission19-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-5_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-5_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-6_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-6_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-7_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-7_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-8_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-8_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-9_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-9_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-10_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-10_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-11_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-11_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-12_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-12_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-13_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-13_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-14_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-14_individual_bundle_results.csv"],
+     "ismrm2015_tractography_challenge_submission1-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission2-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission2-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission4-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission4-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission5-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission5-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission5-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission5-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission8-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission8-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-5_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-5_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-6_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-6_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-7_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-7_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-8_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-8_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-9_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-9_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-10_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-10_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-11_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-11_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-12_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-12_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-13_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-13_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-14_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-14_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-15_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-15_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-16_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-16_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-17_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-17_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-18_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-18_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-19_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-19_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission11-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission11-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission11-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission11-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission15-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission15-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-5_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-5_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-6_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-6_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-7_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-7_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-8_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-8_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-9_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-9_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-10_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-10_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-11_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-11_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-12_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-12_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-13_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-13_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-14_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-14_individual_bundle_results.csv"],  # noqa E501
     ["ismrm2015_tractography_challenge_overall_results.csv",
-     "ismrm2015_tractography_challenge_submission1-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission1-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission1-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission1-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission1-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission1-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission2-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission2-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission3-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission3-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission4-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission4-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission5-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission5-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission5-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission5-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission6-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission6-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission7-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission7-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission7-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission7-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission7-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission7-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission7-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission7-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission8-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission8-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission9-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission9-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-5_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-5_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-6_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-6_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-7_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-7_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-8_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-8_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-9_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-9_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-10_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-10_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-11_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-11_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-12_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-12_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-13_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-13_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-14_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-14_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-15_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-15_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-16_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-16_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-17_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-17_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-18_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-18_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission10-19_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission10-19_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission11-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission11-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission11-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission11-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission12-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission12-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission12-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission12-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission12-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission12-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission12-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission12-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission13-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission13-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission13-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission13-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission13-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission13-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission13-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission13-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission14-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission14-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission14-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission14-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission14-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission14-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission15-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission15-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission16-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission16-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission17-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission17-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission18-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission18-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission19-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission19-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission19-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission19-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission19-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission19-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-0_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-0_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-1_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-1_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-2_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-2_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-3_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-3_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-4_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-4_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-5_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-5_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-6_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-6_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-7_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-7_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-8_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-8_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-9_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-9_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-10_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-10_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-11_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-11_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-12_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-12_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-13_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-13_individual_bundle_results.csv",
-     "ismrm2015_tractography_challenge_submission20-14_angular_error_results.csv",
-     "ismrm2015_tractography_challenge_submission20-14_individual_bundle_results.csv"],
-     "ismrm2015_tractography_challenge_overall_results_SHA"],
-     ["file1-0_angular_error_results_SHA"],
-     ["file1-0_individual_bundle_results_SHA"],
-     ["file1-1_angular_error_results_SHA"],
-     ["file1-1_individual_bundle_results_SHA"],
-     ["file1-2_angular_error_results_SHA"],
-     ["file1-2_individual_bundle_results_SHA"],
-     ["file1-3_angular_error_results_SHA"],
-     ["file1-3_individual_bundle_results_SHA"],
-     ["file1-4_angular_error_results_SHA"],
-     ["file1-4_individual_bundle_results_SHA"],
-     ["file2-0_angular_error_results_SHA"],
-     ["file2-0_individual_bundle_results_SHA"],
-     ["file3-0_angular_error_results_SHA"],
-     ["file3-0_individual_bundle_results_SHA"],
-     ["file3-1_angular_error_results_SHA"],
-     ["file3-1_individual_bundle_results_SHA"],
-     ["file3-2_angular_error_results_SHA"],
-     ["file3-2_individual_bundle_results_SHA"],
-     ["file3-3_angular_error_results_SHA"],
-     ["file3-3_individual_bundle_results_SHA"],
-     ["file3-4_angular_error_results_SHA"],
-     ["file3-4_individual_bundle_results_SHA"],
-     ["file4-0_angular_error_results_SHA"],
-     ["file4-0_individual_bundle_results_SHA"],
-     ["file5-0_angular_error_results_SHA"],
-     ["file5-0_individual_bundle_results_SHA"],
-     ["file5-1_angular_error_results_SHA"],
-     ["file5-1_individual_bundle_results_SHA"],
-     ["file6-0_angular_error_results_SHA"],
-     ["file6-0_individual_bundle_results_SHA"],
-     ["file6-1_angular_error_results_SHA"],
-     ["file6-1_individual_bundle_results_SHA"],
-     ["file6-2_angular_error_results_SHA"],
-     ["file6-2_individual_bundle_results_SHA"],
-     ["file6-3_angular_error_results_SHA"],
-     ["file6-3_individual_bundle_results_SHA"],
-     ["file6-4_angular_error_results_SHA"],
-     ["file6-4_individual_bundle_results_SHA"],
-     ["file7-0_angular_error_results_SHA"],
-     ["file7-0_individual_bundle_results_SHA"],
-     ["file7-1_angular_error_results_SHA"],
-     ["file7-1_individual_bundle_results_SHA"],
-     ["file7-2_angular_error_results_SHA"],
-     ["file7-2_individual_bundle_results_SHA"],
-     ["file7-3_angular_error_results_SHA"],
-     ["file7-3_individual_bundle_results_SHA"],
-     ["file8-0_angular_error_results_SHA"],
-     ["file8-0_individual_bundle_results_SHA"],
-     ["file9-0_angular_error_results_SHA"],
-     ["file9-0_individual_bundle_results_SHA"],
-     ["file9-1_angular_error_results_SHA"],
-     ["file9-1_individual_bundle_results_SHA"],
-     ["file9-2_angular_error_results_SHA"],
-     ["file9-2_individual_bundle_results_SHA"],
-     ["file9-3_angular_error_results_SHA"],
-     ["file9-3_individual_bundle_results_SHA"],
-     ["file9-4_angular_error_results_SHA"],
-     ["file9-4_individual_bundle_results_SHA"],
-     ["file10-0_angular_error_results_SHA"],
-     ["file10-0_individual_bundle_results_SHA"],
-     ["file10-1_angular_error_results_SHA"],
-     ["file10-1_individual_bundle_results_SHA"],
-     ["file10-2_angular_error_results_SHA"],
-     ["file10-2_individual_bundle_results_SHA"],
-     ["file10-3_angular_error_results_SHA"],
-     ["file10-3_individual_bundle_results_SHA"],
-     ["file10-4_angular_error_results_SHA"],
-     ["file10-4_individual_bundle_results_SHA"],
-     ["file10-5_angular_error_results_SHA"],
-     ["file10-5_individual_bundle_results_SHA"],
-     ["file10-6_angular_error_results_SHA"],
-     ["file10-6_individual_bundle_results_SHA"],
-     ["file10-7_angular_error_results_SHA"],
-     ["file10-7_individual_bundle_results_SHA"],
-     ["file10-8_angular_error_results_SHA"],
-     ["file10-8_individual_bundle_results_SHA"],
-     ["file10-9_angular_error_results_SHA"],
-     ["file10-9_individual_bundle_results_SHA"],
-     ["file10-10_angular_error_results_SHA"],
-     ["file10-10_individual_bundle_results_SHA"],
-     ["file10-11_angular_error_results_SHA"],
-     ["file10-11_individual_bundle_results_SHA"],
-     ["file10-12_angular_error_results_SHA"],
-     ["file10-12_individual_bundle_results_SHA"],
-     ["file10-13_angular_error_results_SHA"],
-     ["file10-13_individual_bundle_results_SHA"],
-     ["file10-14_angular_error_results_SHA"],
-     ["file10-14_individual_bundle_results_SHA"],
-     ["file10-15_angular_error_results_SHA"],
-     ["file10-15_individual_bundle_results_SHA"],
-     ["file10-16_angular_error_results_SHA"],
-     ["file10-16_individual_bundle_results_SHA"],
-     ["file10-17_angular_error_results_SHA"],
-     ["file10-17_individual_bundle_results_SHA"],
-     ["file10-18_angular_error_results_SHA"],
-     ["file10-18_individual_bundle_results_SHA"],
-     ["file10-19_angular_error_results_SHA"],
-     ["file10-19_individual_bundle_results_SHA"],
-     ["file11-0_angular_error_results_SHA"],
-     ["file11-0_individual_bundle_results_SHA"],
-     ["file11-1_angular_error_results_SHA"],
-     ["file11-1_individual_bundle_results_SHA"],
-     ["file12-0_angular_error_results_SHA"],
-     ["file12-0_individual_bundle_results_SHA"],
-     ["file12-1_angular_error_results_SHA"],
-     ["file12-1_individual_bundle_results_SHA"],
-     ["file12-2_angular_error_results_SHA"],
-     ["file12-2_individual_bundle_results_SHA"],
-     ["file12-3_angular_error_results_SHA"],
-     ["file12-3_individual_bundle_results_SHA"],
-     ["file13-0_angular_error_results_SHA"],
-     ["file13-0_individual_bundle_results_SHA"],
-     ["file13-1_angular_error_results_SHA"],
-     ["file13-1_individual_bundle_results_SHA"],
-     ["file13-2_angular_error_results_SHA"],
-     ["file13-2_individual_bundle_results_SHA"],
-     ["file13-3_angular_error_results_SHA"],
-     ["file13-3_individual_bundle_results_SHA"],
-     ["file14-0_angular_error_results_SHA"],
-     ["file14-0_individual_bundle_results_SHA"],
-     ["file14-1_angular_error_results_SHA"],
-     ["file14-1_individual_bundle_results_SHA"],
-     ["file14-2_angular_error_results_SHA"],
-     ["file14-2_individual_bundle_results_SHA"],
-     ["file15-0_angular_error_results_SHA"],
-     ["file15-0_individual_bundle_results_SHA"],
-     ["file16-0_angular_error_results_SHA"],
-     ["file16-0_individual_bundle_results_SHA"],
-     ["file16-1_angular_error_results_SHA"],
-     ["file16-1_individual_bundle_results_SHA"],
-     ["file16-2_angular_error_results_SHA"],
-     ["file16-2_individual_bundle_results_SHA"],
-     ["file16-3_angular_error_results_SHA"],
-     ["file16-3_individual_bundle_results_SHA"],
-     ["file16-4_angular_error_results_SHA"],
-     ["file16-4_individual_bundle_results_SHA"],
-     ["file17-0_angular_error_results_SHA"],
-     ["file17-0_individual_bundle_results_SHA"],
-     ["file17-1_angular_error_results_SHA"],
-     ["file17-1_individual_bundle_results_SHA"],
-     ["file17-2_angular_error_results_SHA"],
-     ["file17-2_individual_bundle_results_SHA"],
-     ["file17-3_angular_error_results_SHA"],
-     ["file17-3_individual_bundle_results_SHA"],
-     ["file17-4_angular_error_results_SHA"],
-     ["file17-4_individual_bundle_results_SHA"],
-     ["file18-0_angular_error_results_SHA"],
-     ["file18-0_individual_bundle_results_SHA"],
-     ["file18-1_angular_error_results_SHA"],
-     ["file18-1_individual_bundle_results_SHA"],
-     ["file18-2_angular_error_results_SHA"],
-     ["file18-2_individual_bundle_results_SHA"],
-     ["file18-3_angular_error_results_SHA"],
-     ["file18-3_individual_bundle_results_SHA"],
-     ["file18-4_angular_error_results_SHA"],
-     ["file18-4_individual_bundle_results_SHA"],
-     ["file19-0_angular_error_results_SHA"],
-     ["file19-0_individual_bundle_results_SHA"],
-     ["file19-1_angular_error_results_SHA"],
-     ["file19-1_individual_bundle_results_SHA"],
-     ["file19-2_angular_error_results_SHA"],
-     ["file19-2_individual_bundle_results_SHA"],
-     ["file20-0_angular_error_results_SHA"],
-     ["file20-0_individual_bundle_results_SHA"],
-     ["file20-1_angular_error_results_SHA"],
-     ["file20-1_individual_bundle_results_SHA"],
-     ["file20-2_angular_error_results_SHA"],
-     ["file20-2_individual_bundle_results_SHA"],
-     ["file20-3_angular_error_results_SHA"],
-     ["file20-3_individual_bundle_results_SHA"],
-     ["file20-4_angular_error_results_SHA"],
-     ["file20-4_individual_bundle_results_SHA"],
-     ["file20-5_angular_error_results_SHA"],
-     ["file20-5_individual_bundle_results_SHA"],
-     ["file20-6_angular_error_results_SHA"],
-     ["file20-6_individual_bundle_results_SHA"],
-     ["file20-7_angular_error_results_SHA"],
-     ["file20-7_individual_bundle_results_SHA"],
-     ["file20-8_angular_error_results_SHA"],
-     ["file20-8_individual_bundle_results_SHA"],
-     ["file20-9_angular_error_results_SHA"],
-     ["file20-9_individual_bundle_results_SHA"],
-     ["file20-10_angular_error_results_SHA"],
-     ["file20-10_individual_bundle_results_SHA"],
-     ["file20-11_angular_error_results_SHA"],
-     ["file20-11_individual_bundle_results_SHA"],
-     ["file20-12_angular_error_results_SHA"],
-     ["file20-12_individual_bundle_results_SHA"],
-     ["file20-13_angular_error_results_SHA"],
-     ["file20-13_individual_bundle_results_SHA"],
-     ["file20-14_angular_error_results_SHA"],
-     ["file20-14_individual_bundle_results_SHA"],
+     "ismrm2015_tractography_challenge_submission1-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission1-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission2-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission2-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission3-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission4-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission4-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission5-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission5-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission5-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission5-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission6-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission7-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission8-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission8-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission9-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-5_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-5_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-6_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-6_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-7_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-7_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-8_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-8_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-9_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-9_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-10_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-10_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-11_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-11_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-12_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-12_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-13_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-13_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-14_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-14_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-15_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-15_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-16_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-16_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-17_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-17_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-18_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-18_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-19_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission10-19_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission11-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission11-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission11-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission11-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission12-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission13-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission14-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission15-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission15-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission16-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission17-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission18-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission19-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-0_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-0_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-1_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-1_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-2_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-2_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-3_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-3_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-4_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-4_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-5_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-5_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-6_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-6_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-7_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-7_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-8_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-8_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-9_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-9_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-10_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-10_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-11_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-11_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-12_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-12_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-13_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-13_individual_bundle_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-14_angular_error_results.csv",  # noqa E501
+     "ismrm2015_tractography_challenge_submission20-14_individual_bundle_results.csv"],  # noqa E501
+     ["ismrm2015_tractography_challenge_overall_results_SHA",
+      "file1-0_angular_error_results_SHA",
+      "file1-0_individual_bundle_results_SHA",
+      "file1-1_angular_error_results_SHA",
+      "file1-1_individual_bundle_results_SHA",
+      "file1-2_angular_error_results_SHA",
+      "file1-2_individual_bundle_results_SHA",
+      "file1-3_angular_error_results_SHA",
+      "file1-3_individual_bundle_results_SHA",
+      "file1-4_angular_error_results_SHA",
+      "file1-4_individual_bundle_results_SHA",
+      "file2-0_angular_error_results_SHA",
+      "file2-0_individual_bundle_results_SHA",
+      "file3-0_angular_error_results_SHA",
+      "file3-0_individual_bundle_results_SHA",
+      "file3-1_angular_error_results_SHA",
+      "file3-1_individual_bundle_results_SHA",
+      "file3-2_angular_error_results_SHA",
+      "file3-2_individual_bundle_results_SHA",
+      "file3-3_angular_error_results_SHA",
+      "file3-3_individual_bundle_results_SHA",
+      "file3-4_angular_error_results_SHA",
+      "file3-4_individual_bundle_results_SHA",
+      "file4-0_angular_error_results_SHA",
+      "file4-0_individual_bundle_results_SHA",
+      "file5-0_angular_error_results_SHA",
+      "file5-0_individual_bundle_results_SHA",
+      "file5-1_angular_error_results_SHA",
+      "file5-1_individual_bundle_results_SHA",
+      "file6-0_angular_error_results_SHA",
+      "file6-0_individual_bundle_results_SHA",
+      "file6-1_angular_error_results_SHA",
+      "file6-1_individual_bundle_results_SHA",
+      "file6-2_angular_error_results_SHA",
+      "file6-2_individual_bundle_results_SHA",
+      "file6-3_angular_error_results_SHA",
+      "file6-3_individual_bundle_results_SHA",
+      "file6-4_angular_error_results_SHA",
+      "file6-4_individual_bundle_results_SHA",
+      "file7-0_angular_error_results_SHA",
+      "file7-0_individual_bundle_results_SHA",
+      "file7-1_angular_error_results_SHA",
+      "file7-1_individual_bundle_results_SHA",
+      "file7-2_angular_error_results_SHA",
+      "file7-2_individual_bundle_results_SHA",
+      "file7-3_angular_error_results_SHA",
+      "file7-3_individual_bundle_results_SHA",
+      "file8-0_angular_error_results_SHA",
+      "file8-0_individual_bundle_results_SHA",
+      "file9-0_angular_error_results_SHA",
+      "file9-0_individual_bundle_results_SHA",
+      "file9-1_angular_error_results_SHA",
+      "file9-1_individual_bundle_results_SHA",
+      "file9-2_angular_error_results_SHA",
+      "file9-2_individual_bundle_results_SHA",
+      "file9-3_angular_error_results_SHA",
+      "file9-3_individual_bundle_results_SHA",
+      "file9-4_angular_error_results_SHA",
+      "file9-4_individual_bundle_results_SHA",
+      "file10-0_angular_error_results_SHA",
+      "file10-0_individual_bundle_results_SHA",
+      "file10-1_angular_error_results_SHA",
+      "file10-1_individual_bundle_results_SHA",
+      "file10-2_angular_error_results_SHA",
+      "file10-2_individual_bundle_results_SHA",
+      "file10-3_angular_error_results_SHA",
+      "file10-3_individual_bundle_results_SHA",
+      "file10-4_angular_error_results_SHA",
+      "file10-4_individual_bundle_results_SHA",
+      "file10-5_angular_error_results_SHA",
+      "file10-5_individual_bundle_results_SHA",
+      "file10-6_angular_error_results_SHA",
+      "file10-6_individual_bundle_results_SHA",
+      "file10-7_angular_error_results_SHA",
+      "file10-7_individual_bundle_results_SHA",
+      "file10-8_angular_error_results_SHA",
+      "file10-8_individual_bundle_results_SHA",
+      "file10-9_angular_error_results_SHA",
+      "file10-9_individual_bundle_results_SHA",
+      "file10-10_angular_error_results_SHA",
+      "file10-10_individual_bundle_results_SHA",
+      "file10-11_angular_error_results_SHA",
+      "file10-11_individual_bundle_results_SHA",
+      "file10-12_angular_error_results_SHA",
+      "file10-12_individual_bundle_results_SHA",
+      "file10-13_angular_error_results_SHA",
+      "file10-13_individual_bundle_results_SHA",
+      "file10-14_angular_error_results_SHA",
+      "file10-14_individual_bundle_results_SHA",
+      "file10-15_angular_error_results_SHA",
+      "file10-15_individual_bundle_results_SHA",
+      "file10-16_angular_error_results_SHA",
+      "file10-16_individual_bundle_results_SHA",
+      "file10-17_angular_error_results_SHA",
+      "file10-17_individual_bundle_results_SHA",
+      "file10-18_angular_error_results_SHA",
+      "file10-18_individual_bundle_results_SHA",
+      "file10-19_angular_error_results_SHA",
+      "file10-19_individual_bundle_results_SHA",
+      "file11-0_angular_error_results_SHA",
+      "file11-0_individual_bundle_results_SHA",
+      "file11-1_angular_error_results_SHA",
+      "file11-1_individual_bundle_results_SHA",
+      "file12-0_angular_error_results_SHA",
+      "file12-0_individual_bundle_results_SHA",
+      "file12-1_angular_error_results_SHA",
+      "file12-1_individual_bundle_results_SHA",
+      "file12-2_angular_error_results_SHA",
+      "file12-2_individual_bundle_results_SHA",
+      "file12-3_angular_error_results_SHA",
+      "file12-3_individual_bundle_results_SHA",
+      "file13-0_angular_error_results_SHA",
+      "file13-0_individual_bundle_results_SHA",
+      "file13-1_angular_error_results_SHA",
+      "file13-1_individual_bundle_results_SHA",
+      "file13-2_angular_error_results_SHA",
+      "file13-2_individual_bundle_results_SHA",
+      "file13-3_angular_error_results_SHA",
+      "file13-3_individual_bundle_results_SHA",
+      "file14-0_angular_error_results_SHA",
+      "file14-0_individual_bundle_results_SHA",
+      "file14-1_angular_error_results_SHA",
+      "file14-1_individual_bundle_results_SHA",
+      "file14-2_angular_error_results_SHA",
+      "file14-2_individual_bundle_results_SHA",
+      "file15-0_angular_error_results_SHA",
+      "file15-0_individual_bundle_results_SHA",
+      "file16-0_angular_error_results_SHA",
+      "file16-0_individual_bundle_results_SHA",
+      "file16-1_angular_error_results_SHA",
+      "file16-1_individual_bundle_results_SHA",
+      "file16-2_angular_error_results_SHA",
+      "file16-2_individual_bundle_results_SHA",
+      "file16-3_angular_error_results_SHA",
+      "file16-3_individual_bundle_results_SHA",
+      "file16-4_angular_error_results_SHA",
+      "file16-4_individual_bundle_results_SHA",
+      "file17-0_angular_error_results_SHA",
+      "file17-0_individual_bundle_results_SHA",
+      "file17-1_angular_error_results_SHA",
+      "file17-1_individual_bundle_results_SHA",
+      "file17-2_angular_error_results_SHA",
+      "file17-2_individual_bundle_results_SHA",
+      "file17-3_angular_error_results_SHA",
+      "file17-3_individual_bundle_results_SHA",
+      "file17-4_angular_error_results_SHA",
+      "file17-4_individual_bundle_results_SHA",
+      "file18-0_angular_error_results_SHA",
+      "file18-0_individual_bundle_results_SHA",
+      "file18-1_angular_error_results_SHA",
+      "file18-1_individual_bundle_results_SHA",
+      "file18-2_angular_error_results_SHA",
+      "file18-2_individual_bundle_results_SHA",
+      "file18-3_angular_error_results_SHA",
+      "file18-3_individual_bundle_results_SHA",
+      "file18-4_angular_error_results_SHA",
+      "file18-4_individual_bundle_results_SHA",
+      "file19-0_angular_error_results_SHA",
+      "file19-0_individual_bundle_results_SHA",
+      "file19-1_angular_error_results_SHA",
+      "file19-1_individual_bundle_results_SHA",
+      "file19-2_angular_error_results_SHA",
+      "file19-2_individual_bundle_results_SHA",
+      "file20-0_angular_error_results_SHA",
+      "file20-0_individual_bundle_results_SHA",
+      "file20-1_angular_error_results_SHA",
+      "file20-1_individual_bundle_results_SHA",
+      "file20-2_angular_error_results_SHA",
+      "file20-2_individual_bundle_results_SHA",
+      "file20-3_angular_error_results_SHA",
+      "file20-3_individual_bundle_results_SHA",
+      "file20-4_angular_error_results_SHA",
+      "file20-4_individual_bundle_results_SHA",
+      "file20-5_angular_error_results_SHA",
+      "file20-5_individual_bundle_results_SHA",
+      "file20-6_angular_error_results_SHA",
+      "file20-6_individual_bundle_results_SHA",
+      "file20-7_angular_error_results_SHA",
+      "file20-7_individual_bundle_results_SHA",
+      "file20-8_angular_error_results_SHA",
+      "file20-8_individual_bundle_results_SHA",
+      "file20-9_angular_error_results_SHA",
+      "file20-9_individual_bundle_results_SHA",
+      "file20-10_angular_error_results_SHA",
+      "file20-10_individual_bundle_results_SHA",
+      "file20-11_angular_error_results_SHA",
+      "file20-11_individual_bundle_results_SHA",
+      "file20-12_angular_error_results_SHA",
+      "file20-12_individual_bundle_results_SHA",
+      "file20-13_angular_error_results_SHA",
+      "file20-13_individual_bundle_results_SHA",
+      "file20-14_angular_error_results_SHA",
+      "file20-14_individual_bundle_results_SHA"],
     data_size="12KB",
     doc="Download ISMRM 2015 Tractography Challenge submission result data",
     unzip=True
@@ -1077,7 +1109,7 @@ def get_fnames(name):
 
     Parameters
     ----------
-    name : str
+    name : Dataset enum
         Dataset name.
     Returns
     -------
@@ -1085,53 +1117,52 @@ def get_fnames(name):
         Filenames for dataset.
     """
 
-    DATA_DIR = pjoin(os.path.dirname(__file__), "files")
-    if name == Dataset.FIBERCUP_ANAT:
+    if name == Dataset.FIBERCUP_ANAT.name:
         files, folder = fetch_fibercup_anat()
-        return pjoin(folder, files[0])  # pjoin(folder, "T1w.nii.gz")
-    elif name == Dataset.FIBERCUP_DWI:
-        files, folder = fetch_fibercup()
-        fraw = pjoin(folder, files[0])  # "dwi.nii.gz")
-        fbval = pjoin(folder, files[1])  # ".bval")
-        fbvec = pjoin(folder, files[2])  # "bvec")
+        return pjoin(folder, list(files.keys())[0])  # ,"T1w.nii.gz")
+    elif name == Dataset.FIBERCUP_DWI.name:
+        files, folder = fetch_fibercup_dwi()
+        fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
+        fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
+        fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
         return fraw, fbval, fbvec
-    elif name == Dataset.FIBERCUP_TRACTOGRAPHY:
+    elif name == Dataset.FIBERCUP_TRACTOGRAPHY.name:
         files, folder = fetch_fibercup_tractography()
-        for fname in files:
+        for fname in list(files.keys()):
             fnames = pjoin(folder, fname)
         return fnames
-    elif name == Dataset.ISBI2013_ANAT:
+    elif name == Dataset.ISBI2013_ANAT.name:
         files, folder = fetch_isbi2013_anat()
-        return pjoin(folder, files[0])  # "T1w.nii.gz")
-    elif name == Dataset.ISBI2013_DWI:
+        return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
+    elif name == Dataset.ISBI2013_DWI.name:
         files, folder = fetch_isbi2013_dwi()
-        fraw = pjoin(folder, files[0])  # "dwi.nii.gz")
-        fbval = pjoin(folder, files[1])  # ".bval")
-        fbvec = pjoin(folder, files[2])  # "bvec")
+        fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
+        fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
+        fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
         return fraw, fbval, fbvec
-    elif name ==  Dataset.ISBI2013_TRACTOGRAPHY:
-        files, folder = isbi2013_tractography()
-        for fname in files:
+    elif name ==  Dataset.ISBI2013_TRACTOGRAPHY.name:
+        files, folder = fetch_isbi2013_tractography()
+        for fname in list(files.keys()):
             fnames = pjoin(folder, fname)
         return fnames
-    elif name == Dataset.ISMRM2015_ANAT:
-        files, folder = fetch_ismrm2015_tractography_challenge_anat()
-        return pjoin(folder, files[0])  # pjoin(folder, "T1w.nii.gz")
-    elif name == Dataset.ISMRM2015_DWI:
-        files, folder = fetch_ismrm2015_tractography_challenge_dwi()
-        fraw = pjoin(folder, files[0])  # "dwi.nii.gz")
-        fbval = pjoin(folder, files[1])  # ".bval")
-        fbvec = pjoin(folder, files[2])  # "bvec")
+    elif name == Dataset.ISMRM2015_ANAT.name:
+        files, folder = fetch_ismrm2015_anat()
+        return pjoin(folder, list(files.keys())[0])  # , "T1w.nii.gz")
+    elif name == Dataset.ISMRM2015_DWI.name:
+        files, folder = fetch_ismrm2015_dwi()
+        fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
+        fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
+        fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
         return fraw, fbval, fbvec
-    elif name == Dataset.ISMRM2015_TRACTOGRAPHY:
-        files, folder = fetch_ismrm2015_tractography_challenge_tractography()
-        for fname in files:
+    elif name == Dataset.ISMRM2015_TRACTOGRAPHY.name:
+        files, folder = fetch_ismrm2015_tractography()
+        for fname in list(files.keys()):
             fnames = pjoin(folder, fname)
         return fnames
-    else
+    else:
         raise ValueError("Unknown dataset.\n"
                          "Provided: {}; Available: {}".
-                         format(name, Dataset._member_names_))
+                         format(name, Dataset.__members__.keys()))
 
 
 def read_fibercup_anat():
@@ -1147,7 +1178,7 @@ def read_fibercup_anat():
     return nib.load(fname)
 
 
-def read_fibercup_dwi(fname):
+def read_fibercup_dwi():
     """Load Fiber Cup dataset diffusion data.
 
     Returns
@@ -1180,7 +1211,12 @@ def read_fibercup_tractography(bundle_names=None):
         Dictionary with data of the bundles and the bundles as keys.
     """
 
-    path = pjoin(tractodata_home, "datasets", "fibercup", "derivatives", "tractography", "sub-01", "dwi")
+    space = Space.RASMM
+    origin = Origin.NIFTI
+
+    path = pjoin(
+        tractodata_home, "datasets", "fibercup", "derivatives", "tractography",
+        "sub-01", "dwi")
 
     anat_fname = get_fnames(Dataset.FIBERCUP_ANAT)
 
@@ -1188,9 +1224,10 @@ def read_fibercup_tractography(bundle_names=None):
 
     for bundle in bundle_names:
 
-        sft = load_tractogram(pjoin(path, bundle + ".trk"), anat_fname,
-                              to_space=Space.RASMM, to_origin=Origin.NIFTI,
-                              bbox_valid_check=True, trk_header_check=True).streamlines
+        sft = load_tractogram(
+            pjoin(path, bundle + ".trk"), anat_fname, to_space=space,
+            to_origin=origin, bbox_valid_check=True,
+            trk_header_check=True).streamlines
 
         bundles[bundle] = sft
 
@@ -1210,7 +1247,7 @@ def read_isbi2013_anat():
     return nib.load(fname)
 
 
-def read_isbi2013_dwi(fname):
+def read_isbi2013_dwi():
     """Load ISBI 2013 HARDI Reconstruction Challenge dataset diffusion data.
 
     Returns
@@ -1243,7 +1280,12 @@ def read_isbi2013_tractography(bundle_names=None):
         Dictionary with data of the bundles and the bundles as keys.
     """
 
-    path = pjoin(tractodata_home, "datasets", "isbi2013", "derivatives", "tractography", "sub-01", "dwi")
+    space = Space.RASMM
+    origin = Origin.NIFTI
+
+    path = pjoin(
+        tractodata_home, "datasets", "isbi2013", "derivatives", "tractography",
+        "sub-01", "dwi")
 
     anat_fname = get_fnames(Dataset.ISBI2013_ANAT)
 
@@ -1251,16 +1293,17 @@ def read_isbi2013_tractography(bundle_names=None):
 
     for bundle in bundle_names:
 
-        sft = load_tractogram(pjoin(path, bundle + ".trk"), anat_fname,
-                              to_space=Space.RASMM, to_origin=Origin.NIFTI,
-                              bbox_valid_check=True, trk_header_check=True).streamlines
+        sft = load_tractogram(
+            pjoin(path, bundle + ".trk"), anat_fname, to_space=space,
+            to_origin=origin, bbox_valid_check=True,
+            trk_header_check=True).streamlines
 
         bundles[bundle] = sft
 
     return bundles
 
 
-def read_ismrm2015_anat(fname):
+def read_ismrm2015_anat():
     """Load ISMRM 2015 Tractography Challenge dataset anatomy data.
 
     Returns
@@ -1275,7 +1318,7 @@ def read_ismrm2015_anat(fname):
     return nib.load(fname)
 
 
-def read_ismrm2015_dwi(fname):
+def read_ismrm2015_dwi():
     """Load ISMRM 2015 Tractography Challenge dataset diffusion data.
 
     Returns
@@ -1308,7 +1351,12 @@ def read_ismrm2015_tractography(bundle_names=None):
         Dictionary with data of the bundles and the bundles as keys.
     """
 
-    path = pjoin(tractodata_home, "datasets", "ismrm2015", "derivatives", "tractography", "sub-01", "dwi")
+    space = Space.RASMM
+    origin = Origin.NIFTI
+
+    path = pjoin(
+        tractodata_home, "datasets", "ismrm2015", "derivatives",
+        "tractography", "sub-01", "dwi")
 
     anat_fname = get_fnames(Dataset.ISMRM2015_ANAT)
 
@@ -1316,9 +1364,10 @@ def read_ismrm2015_tractography(bundle_names=None):
 
     for bundle in bundle_names:
 
-        sft = load_tractogram(pjoin(path, bundle + ".trk"), anat_fname,
-                              to_space=Space.RASMM, to_origin=Origin.NIFTI,
-                              bbox_valid_check=True, trk_header_check=True).streamlines
+        sft = load_tractogram(
+            pjoin(path, bundle + ".trk"), anat_fname, to_space=space,
+            to_origin=origin, bbox_valid_check=True,
+            trk_header_check=True).streamlines
 
         bundles[bundle] = sft
 
