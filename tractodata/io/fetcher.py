@@ -2,6 +2,7 @@
 
 import enum
 import os
+import subprocess
 import sys
 import contextlib
 
@@ -64,7 +65,7 @@ def update_progressbar(progress, total_length):
     # Try to set the bar_length according to the console size
     # noinspection PyBroadException
     try:
-        columns = os.popen("tput cols", "r").read()
+        columns = subprocess.Popen("tput cols", "r").read()
         bar_length = int(columns) - 46
         if bar_length < 1:
             bar_length = 20
