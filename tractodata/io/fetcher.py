@@ -94,8 +94,8 @@ def _already_there_msg(folder):
     """Print a message indicating that dataset is already in place.
     """
 
-    msg = "Dataset is already in place. If you want to fetch it again "
-    msg += "please first remove the folder {}".format(folder)
+    msg = "Dataset is already in place.\nIf you want to fetch it again, "
+    msg += "please first remove the file at issue in folder\n{}".format(folder)
     print(msg)
 
 
@@ -185,7 +185,7 @@ def fetch_data(files, folder, data_size=None):
     """
 
     if not os.path.exists(folder):
-        print("Creating new folder {}".format(folder))
+        print("Creating new folder\n{}".format(folder))
         os.makedirs(folder)
 
     if data_size is not None:
@@ -198,13 +198,13 @@ def fetch_data(files, folder, data_size=None):
         if os.path.exists(fullpath) and (_get_file_hash(fullpath) == _hash.lower()):  # noqa E501
             continue
         all_skip = False
-        print("Downloading {} to {}".format(f, folder))
+        print("Downloading\n{}\nto\n{}".format(f, folder))
         _get_file_data(fullpath, url)
         check_hash(fullpath, _hash)
     if all_skip:
         _already_there_msg(folder)
     else:
-        print("Files successfully downloaded to {}".format(folder))
+        print("\nFiles successfully downloaded to\n{}".format(folder))
 
 
 def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
