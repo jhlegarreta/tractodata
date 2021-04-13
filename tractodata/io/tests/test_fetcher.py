@@ -48,7 +48,7 @@ def test_make_fetcher():
         remote_fnames = [op.sep + op.split(test_data)[-1]]
         local_fnames = ["fibercup_name"]
         doc = "Download Fiber Cup dataset anatomy data"
-        data_size = "12KB"
+        data_size = "543B"
         msg = None
         unzip = False
 
@@ -92,23 +92,21 @@ def test_make_fetcher():
     # Make a fetcher with actual data storage
     with TemporaryDirectory() as tmpdir:
 
-        name = "fetch_fibercup_anat"
-        remote_fnames = ["T1w.nii.gz"]
-        local_fnames = ["T1w.nii.gz"]
+        name = "fetch_fibercup_dwi"
+        remote_fnames = ["download"]
+        local_fnames = ["dwi.zip"]
         doc = "Download Fiber Cup dataset anatomy data"
-        data_size = "12KB"
+        data_size = "543B"
         msg = None
         unzip = True
 
-        stored_hash = fetcher._get_file_hash(local_fnames[0])
+        stored_hash = "f907901563254833c5f2bc90c209b4ae"
 
         rel_data_folder = pjoin("datasets", "fibercup", "raw", "sub-01",
-                                "anat")
+                                "dwi")
 
         folder = pjoin(tmpdir, rel_data_folder)
-        testfile_url = \
-            TRACTODATA_DATASETS_URL + "datasets/" + "fibercup/" + "raw/" + \
-            "sub-01/" + "/anat/"
+        testfile_url = TRACTODATA_DATASETS_URL + "5yqvw/"
 
         data_fetcher = fetcher._make_fetcher(
             name, folder, testfile_url, remote_fnames, local_fnames,
@@ -116,14 +114,16 @@ def test_make_fetcher():
             unzip=unzip)
 
         try:
-            data_fetcher()
+            files, folder = data_fetcher()
         except Exception as e:
             print(e)
 
-        assert op.isfile(op.join(tmpdir, local_fnames[0]))
+        fnames = files['dwi.zip'][2]
+
+        assert [op.isfile(op.join(tmpdir, f)) for f in fnames]
 
         npt.assert_equal(
-            fetcher._get_file_hash(op.join(tmpdir, local_fnames[0])),
+            fetcher._get_file_hash(op.join(folder, local_fnames[0])),
             stored_hash)
 
 
@@ -174,8 +174,8 @@ def test_fetch_data():
         npt.assert_(op.exists(newfile))
         npt.assert_equal(fetcher._get_file_hash(newfile), stored_hash)
 
-        # Test that an error is raised when the md5 checksum of the download
-        # file does not match the expected value
+        # Test that an error is raised when the hash of the downloaded file
+        # does not match the expected value
         files = {"testfile.txt": (test_server_url, bad_sha)}
         npt.assert_raises(fetcher.FetcherError,
                           fetcher.fetch_data, files, tmpdir)
@@ -184,16 +184,6 @@ def test_fetch_data():
         server.shutdown()
         # Change to original working directory
         os.chdir(current_dir)
-
-    # Fetch from actual data storage
-    with TemporaryDirectory() as tmpdir:
-
-        sha = "file1_SHA"
-        files = {"T1w.nii.gz": (TRACTODATA_DATASETS_URL, sha)}
-        folder = pjoin(tmpdir, "datasets", "fibercup", "raw", "sub-01", "anat")
-        data_size = None  # "12KB"
-
-        fetcher.fetch_data(files, folder, data_size=data_size)
 
 
 def test_get_fnames():

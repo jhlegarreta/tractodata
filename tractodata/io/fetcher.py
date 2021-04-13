@@ -2,6 +2,7 @@
 
 import enum
 import os
+import subprocess
 import sys
 import contextlib
 
@@ -11,7 +12,7 @@ import zipfile
 import nibabel as nib
 
 from os.path import join as pjoin
-from hashlib import sha256
+from hashlib import md5
 from shutil import copyfileobj
 
 from urllib.request import urlopen
@@ -32,17 +33,14 @@ else:
     tractodata_home = pjoin(os.path.expanduser("~"), ".tractodata")
 
 
-TRACTODATA_DATASETS_URL = \
-    "https://raw.githubusercontent.com/jhlegarreta/tractodata/master/datasets/"
-
-TRACTODATA_CONFIG_URL = \
-    "https://raw.githubusercontent.com/jhlegarreta/tractodata/master/config/"
+TRACTODATA_DATASETS_URL = "https://osf.io/"
 
 
 class Dataset(enum.Enum):
     FIBERCUP_ANAT = "fibercup_anat"
     FIBERCUP_DWI = "fibercup_dwi"
-    FIBERCUP_TRACTOGRAPHY = "fibercup_tractography"
+    FIBERCUP_SYNTH_TRACKING = "fibercup_synth_tracking"
+    FIBERCUP_SYNTH_BUNDLING = "fibercup_synth_bundling"
     ISBI2013_ANAT = "isbi2013_anat"
     ISBI2013_DWI = "isbi2013_dwi"
     ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
@@ -64,7 +62,7 @@ def update_progressbar(progress, total_length):
     # Try to set the bar_length according to the console size
     # noinspection PyBroadException
     try:
-        columns = os.popen("tput cols", "r").read()
+        columns = subprocess.Popen("tput cols", "r").read()
         bar_length = int(columns) - 46
         if bar_length < 1:
             bar_length = 20
@@ -96,30 +94,30 @@ def _already_there_msg(folder):
     """Print a message indicating that dataset is already in place.
     """
 
-    msg = "Dataset is already in place. If you want to fetch it again "
-    msg += "please first remove the folder {}".format(folder)
+    msg = "Dataset is already in place.\nIf you want to fetch it again, "
+    msg += "please first remove the file at issue in folder\n{}".format(folder)
     print(msg)
 
 
 def _get_file_hash(filename):
-    """Generate an SHA hash for the entire file in blocks of 256.
+    """Generate an MD5 hash for the entire file in blocks of 128.
 
     Parameters
     ----------
     filename : str
-        The path to the file whose SHA hash is to be generated.
+        The path to the file whose MD5 hash is to be generated.
 
     Returns
     -------
     hash256_data : str
-        The computed SHA hash from the input file.
+        The computed MD5 hash from the input file.
     """
 
-    hash256_data = sha256()
+    hash_data = md5()
     with open(filename, "rb") as f:
-        for chunk in iter(lambda: f.read(256*hash256_data.block_size), b""):
-            hash256_data.update(chunk)
-    return hash256_data.hexdigest()
+        for chunk in iter(lambda: f.read(128*hash_data.block_size), b""):
+            hash_data.update(chunk)
+    return hash_data.hexdigest()
 
 
 def check_hash(filename, stored_hash=None):
@@ -137,16 +135,14 @@ def check_hash(filename, stored_hash=None):
     if stored_hash is not None:
         computed_hash = _get_file_hash(filename)
         if stored_hash.lower() != computed_hash:
-            msg = """The downloaded file, {},
-             does not have the expected SHA
-            checksum of {}".
-             Instead, the SHA checksum was: {}.
-             This could mean that
-            something is wrong with the file
-             or that the upstream file has been updated.
-            You can try downloading the file again
-             or updating to the newest version of
-            Fury.""".format(filename, stored_hash, computed_hash)
+            msg = \
+                "The downloaded file\n{}\ndoes not have the expected hash " \
+                "value of {}.\nInstead, the hash value was {}.\nThis could " \
+                "mean that something is wrong with the file or that the " \
+                "upstream file has been updated.\nYou can try downloading " \
+                "file again or updating to the newest version of {}".format(
+                    filename, stored_hash, computed_hash,
+                    __name__.split('.')[0])
             raise FetcherError(msg)
 
 
@@ -171,9 +167,9 @@ def fetch_data(files, folder, data_size=None):
     Parameters
     ----------
     files : dictionary
-        For each file in ``files`` the value should be (url, SHA). The file
+        For each file in ``files`` the value should be (url, hash). The file
         will be downloaded from url if the file does not already exist or if
-        the file exists but the SHA checksum does not match.
+        the file exists but the hash does not match.
     folder : str
         The directory where to save the file, the directory will be created if
         it does not already exist.
@@ -184,12 +180,12 @@ def fetch_data(files, folder, data_size=None):
     Raises
     ------
     FetcherError
-        Raises if the SHA hash of the file does not match the expected value.
-        The downloaded file is not deleted when this error is raised.
+        Raises if the hash of the file does not match the expected value. The
+        downloaded file is not deleted when this error is raised.
     """
 
     if not os.path.exists(folder):
-        print("Creating new folder {}".format(folder))
+        print("Creating new folder\n{}".format(folder))
         os.makedirs(folder)
 
     if data_size is not None:
@@ -202,13 +198,13 @@ def fetch_data(files, folder, data_size=None):
         if os.path.exists(fullpath) and (_get_file_hash(fullpath) == _hash.lower()):  # noqa E501
             continue
         all_skip = False
-        print("Downloading {} to {}".format(f, folder))
+        print("Downloading\n{}\nto\n{}".format(f, folder))
         _get_file_data(fullpath, url)
         check_hash(fullpath, _hash)
     if all_skip:
         _already_there_msg(folder)
     else:
-        print("Files successfully downloaded to {}".format(folder))
+        print("\nFiles successfully downloaded to\n{}".format(folder))
 
 
 def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
@@ -230,7 +226,7 @@ def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
     local_fnames : list of strings
         The names of the files to be saved on the local filesystem.
     hash_list : list of strings, optional
-        The SHA hashes of the files. Used to verify the content of the files.
+        The hash values of the files. Used to verify the content of the files.
         Default: None, skipping checking hash.
     doc : str, optional.
         Documentation of the fetcher.
@@ -272,6 +268,7 @@ def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
                         raise ValueError("File extension is not recognized")
                 elif split_ext[-1] == ".zip":
                     z = zipfile.ZipFile(pjoin(folder, f), "r")
+                    files[f] += (tuple(z.namelist()), )
                     z.extractall(folder)
                     z.close()
                 else:
@@ -287,12 +284,11 @@ def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
 fetch_fibercup_anat = _make_fetcher(
     "fetch_fibercup_anat",
     pjoin(tractodata_home, "datasets", "fibercup", "raw", "sub-01", "anat"),
-    TRACTODATA_DATASETS_URL + "datasets/" + "fibercup/" + "raw/" +
-    "sub-01/" + "anat/",
+    TRACTODATA_DATASETS_URL + "ptv25/",
+    ["download"],
     ["T1w.nii.gz"],
-    ["T1w.nii.gz"],
-    ["179642a6dc4cbd594ecca3522c85c0270e1fc800eae637cb6b502a5c2376d0f7"],
-    data_size="12KB",
+    ["7170d0192fa00b5ef069f8e7c274950c"],
+    data_size="543B",
     doc="Download Fiber Cup dataset anatomy data",
     unzip=False
     )
@@ -300,38 +296,40 @@ fetch_fibercup_anat = _make_fetcher(
 fetch_fibercup_dwi = _make_fetcher(
     "fetch_fibercup_dwi",
     pjoin(tractodata_home, "datasets", "fibercup", "raw", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "datasets/" + "fibercup/" + "raw/" +
-    "sub-01/" + "dwi/",
-    ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
-    ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
-    ["file1_SHA",
-     "file2_SHA",
-     "file3_SHA"],
-    data_size="12KB",
+    TRACTODATA_DATASETS_URL + "5yqvw/",
+    ["download"],
+    ["dwi.zip"],
+    ["f907901563254833c5f2bc90c209b4ae"],
+    data_size="0.39MB",
     doc="Download Fiber Cup dataset diffusion data",
     unzip=True
     )
 
-fetch_fibercup_tractography = _make_fetcher(
-    "fetch_fibercup_tractography",
+fetch_fibercup_synth_tracking = _make_fetcher(
+    "fetch_fibercup_synth_tracking",
     pjoin(
-        tractodata_home, "datasets", "fibercup", "derivatives", "tractography",
-        "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "datasets/" + "fibercup/" + "derivatives/" +
-    "tractography/" + "sub-01/" + "dwi/",
-    ["bundle_1.trk", "bundle_2.trk", "bundle_3.trk", "bundle_4.trk",
-     "bundle_5.trk", "bundle_6.trk", "bundle_7.trk"],
-    ["bundle_1.trk", "bundle_2.trk", "bundle_3.trk", "bundle_4.trk",
-     "bundle_5.trk", "bundle_6.trk", "bundle_7.trk"],
-    ["file1_SHA",
-     "file2_SHA",
-     "file3_SHA",
-     "file4_SHA",
-     "file5_SHA",
-     "file6_SHA",
-     "file7_SHA"],
-    data_size="12KB",
-    doc="Download Fiber Cup dataset tractography data",
+        tractodata_home, "datasets", "fibercup", "derivatives", "tracking",
+        "synth", "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "kcng7/",
+    ["download"],
+    ["dwi_space-orig_desc-synth_tractography.trk"],
+    ["9b46bbd9381f589037b5b0077c91ed55"],
+    data_size="10.35MB",
+    doc="Download Fiber Cup dataset synthetic tracking data",
+    unzip=False
+    )
+
+fetch_fibercup_synth_bundling = _make_fetcher(
+    "fetch_fibercup_synth_bundling",
+    pjoin(
+        tractodata_home, "datasets", "fibercup", "derivatives", "bundling",
+        "synth", "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "kp74n/",
+    ["download"],
+    ["dwi_space-orig_desc-synth_subset-bundles_tractography.zip"],
+    ["5930a340edc0a2fb4b59e8c21e154759"],
+    data_size="8.55MB",
+    doc="Download Fiber Cup dataset synthetic bundle data",
     unzip=True
     )
 
@@ -1117,20 +1115,23 @@ def get_fnames(name):
         Filenames for dataset.
     """
 
+    print("\nDataset: {}".format(name))
+
     if name == Dataset.FIBERCUP_ANAT.name:
         files, folder = fetch_fibercup_anat()
         return pjoin(folder, list(files.keys())[0])  # ,"T1w.nii.gz")
     elif name == Dataset.FIBERCUP_DWI.name:
         files, folder = fetch_fibercup_dwi()
-        fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
-        fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
-        fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
-        return fraw, fbval, fbvec
-    elif name == Dataset.FIBERCUP_TRACTOGRAPHY.name:
-        files, folder = fetch_fibercup_tractography()
-        for fname in list(files.keys()):
-            fnames = pjoin(folder, fname)
-        return fnames
+        fnames = files['dwi.zip'][2]
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
+        files, folder = fetch_fibercup_synth_tracking()
+        return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.FIBERCUP_SYNTH_BUNDLING.name:
+        files, folder = fetch_fibercup_synth_bundling()
+        fnames = files[
+            'dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]
+        return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISBI2013_ANAT.name:
         files, folder = fetch_isbi2013_anat()
         return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
@@ -1140,7 +1141,7 @@ def get_fnames(name):
         fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
         fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
         return fraw, fbval, fbvec
-    elif name ==  Dataset.ISBI2013_TRACTOGRAPHY.name:
+    elif name == Dataset.ISBI2013_TRACTOGRAPHY.name:
         files, folder = fetch_isbi2013_tractography()
         for fname in list(files.keys()):
             fnames = pjoin(folder, fname)
