@@ -174,8 +174,8 @@ def test_fetch_data():
         npt.assert_(op.exists(newfile))
         npt.assert_equal(fetcher._get_file_hash(newfile), stored_hash)
 
-        # Test that an error is raised when the md5 checksum of the download
-        # file does not match the expected value
+        # Test that an error is raised when the hash of the downloaded file
+        # does not match the expected value
         files = {"testfile.txt": (test_server_url, bad_sha)}
         npt.assert_raises(fetcher.FetcherError,
                           fetcher.fetch_data, files, tmpdir)

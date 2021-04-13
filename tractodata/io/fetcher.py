@@ -11,7 +11,7 @@ import zipfile
 import nibabel as nib
 
 from os.path import join as pjoin
-from hashlib import sha256
+from hashlib import md5
 from shutil import copyfileobj
 
 from urllib.request import urlopen
@@ -102,24 +102,24 @@ def _already_there_msg(folder):
 
 
 def _get_file_hash(filename):
-    """Generate an SHA hash for the entire file in blocks of 256.
+    """Generate an MD5 hash for the entire file in blocks of 128.
 
     Parameters
     ----------
     filename : str
-        The path to the file whose SHA hash is to be generated.
+        The path to the file whose MD5 hash is to be generated.
 
     Returns
     -------
     hash256_data : str
-        The computed SHA hash from the input file.
+        The computed MD5 hash from the input file.
     """
 
-    hash256_data = sha256()
+    hash_data = md5()
     with open(filename, "rb") as f:
-        for chunk in iter(lambda: f.read(256*hash256_data.block_size), b""):
-            hash256_data.update(chunk)
-    return hash256_data.hexdigest()
+        for chunk in iter(lambda: f.read(128*hash_data.block_size), b""):
+            hash_data.update(chunk)
+    return hash_data.hexdigest()
 
 
 def check_hash(filename, stored_hash=None):
@@ -137,16 +137,14 @@ def check_hash(filename, stored_hash=None):
     if stored_hash is not None:
         computed_hash = _get_file_hash(filename)
         if stored_hash.lower() != computed_hash:
-            msg = """The downloaded file, {},
-             does not have the expected SHA
-            checksum of {}".
-             Instead, the SHA checksum was: {}.
-             This could mean that
-            something is wrong with the file
-             or that the upstream file has been updated.
-            You can try downloading the file again
-             or updating to the newest version of
-            Fury.""".format(filename, stored_hash, computed_hash)
+            msg = \
+                "The downloaded file\n{}\ndoes not have the expected hash " \
+                "value of {}.\nInstead, the hash value was {}.\nThis could " \
+                "mean that something is wrong with the file or that the " \
+                "upstream file has been updated.\nYou can try downloading " \
+                "file again or updating to the newest version of {}".format(
+                    filename, stored_hash, computed_hash,
+                    __name__.split('.')[0])
             raise FetcherError(msg)
 
 
@@ -171,9 +169,9 @@ def fetch_data(files, folder, data_size=None):
     Parameters
     ----------
     files : dictionary
-        For each file in ``files`` the value should be (url, SHA). The file
+        For each file in ``files`` the value should be (url, hash). The file
         will be downloaded from url if the file does not already exist or if
-        the file exists but the SHA checksum does not match.
+        the file exists but the hash does not match.
     folder : str
         The directory where to save the file, the directory will be created if
         it does not already exist.
@@ -184,8 +182,8 @@ def fetch_data(files, folder, data_size=None):
     Raises
     ------
     FetcherError
-        Raises if the SHA hash of the file does not match the expected value.
-        The downloaded file is not deleted when this error is raised.
+        Raises if the hash of the file does not match the expected value. The
+        downloaded file is not deleted when this error is raised.
     """
 
     if not os.path.exists(folder):
@@ -230,7 +228,7 @@ def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
     local_fnames : list of strings
         The names of the files to be saved on the local filesystem.
     hash_list : list of strings, optional
-        The SHA hashes of the files. Used to verify the content of the files.
+        The hash values of the files. Used to verify the content of the files.
         Default: None, skipping checking hash.
     doc : str, optional.
         Documentation of the fetcher.
