@@ -1141,7 +1141,7 @@ def get_fnames(name):
         fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
         fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
         return fraw, fbval, fbvec
-    elif name ==  Dataset.ISBI2013_TRACTOGRAPHY.name:
+    elif name == Dataset.ISBI2013_TRACTOGRAPHY.name:
         files, folder = fetch_isbi2013_tractography()
         for fname in list(files.keys()):
             fnames = pjoin(folder, fname)
