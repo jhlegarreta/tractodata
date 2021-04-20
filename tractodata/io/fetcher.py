@@ -284,9 +284,9 @@ def _make_fetcher(name, folder, baseurl, remote_fnames, local_fnames,
 fetch_fibercup_anat = _make_fetcher(
     "fetch_fibercup_anat",
     pjoin(tractodata_home, "datasets", "fibercup", "raw", "sub-01", "anat"),
-    TRACTODATA_DATASETS_URL + "ptv25/",
+    TRACTODATA_DATASETS_URL + "2xmgw/",
     ["download"],
-    ["T1w.nii.gz"],
+    ["sub01-T1w.nii.gz"],
     ["7170d0192fa00b5ef069f8e7c274950c"],
     data_size="543B",
     doc="Download Fiber Cup dataset anatomy data",
@@ -296,10 +296,10 @@ fetch_fibercup_anat = _make_fetcher(
 fetch_fibercup_dwi = _make_fetcher(
     "fetch_fibercup_dwi",
     pjoin(tractodata_home, "datasets", "fibercup", "raw", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "5yqvw/",
+    TRACTODATA_DATASETS_URL + "br4ds/",
     ["download"],
-    ["dwi.zip"],
-    ["f907901563254833c5f2bc90c209b4ae"],
+    ["sub01-dwi.zip"],
+    ["705396981f1bcda51de12098db968390"],
     data_size="0.39MB",
     doc="Download Fiber Cup dataset diffusion data",
     unzip=True
@@ -310,9 +310,9 @@ fetch_fibercup_synth_tracking = _make_fetcher(
     pjoin(
         tractodata_home, "datasets", "fibercup", "derivatives", "tracking",
         "synth", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "kcng7/",
+    TRACTODATA_DATASETS_URL + "ug7d6/",
     ["download"],
-    ["dwi_space-orig_desc-synth_tractography.trk"],
+    ["sub01-dwi_space-orig_desc-synth_tractography.trk"],
     ["9b46bbd9381f589037b5b0077c91ed55"],
     data_size="10.35MB",
     doc="Download Fiber Cup dataset synthetic tracking data",
@@ -324,12 +324,12 @@ fetch_fibercup_synth_bundling = _make_fetcher(
     pjoin(
         tractodata_home, "datasets", "fibercup", "derivatives", "bundling",
         "synth", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "kp74n/",
+    TRACTODATA_DATASETS_URL + "h84w6/",
     ["download"],
-    ["dwi_space-orig_desc-synth_subset-bundles_tractography.zip"],
-    ["5930a340edc0a2fb4b59e8c21e154759"],
+    ["sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip"],
+    ["60589568bc13d4093af5bb282d78e9ff"],
     data_size="8.55MB",
-    doc="Download Fiber Cup dataset synthetic bundle data",
+    doc="Download Fiber Cup dataset synthetic bundling data",
     unzip=True
     )
 
@@ -1122,7 +1122,7 @@ def get_fnames(name):
         return pjoin(folder, list(files.keys())[0])  # ,"T1w.nii.gz")
     elif name == Dataset.FIBERCUP_DWI.name:
         files, folder = fetch_fibercup_dwi()
-        fnames = files['dwi.zip'][2]
+        fnames = files['sub01-dwi.zip'][2]
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
         files, folder = fetch_fibercup_synth_tracking()
@@ -1130,7 +1130,7 @@ def get_fnames(name):
     elif name == Dataset.FIBERCUP_SYNTH_BUNDLING.name:
         files, folder = fetch_fibercup_synth_bundling()
         fnames = files[
-            'dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]
+            'sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISBI2013_ANAT.name:
         files, folder = fetch_isbi2013_anat()
