@@ -1,3 +1,7 @@
 dipy
 numpy
 nibabel
+pytest==5.3.*
+pytest-cov
+pytest-xdist
+pytest-pep8
