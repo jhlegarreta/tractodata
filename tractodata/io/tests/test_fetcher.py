@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import itertools
 import os.path as op
 import os
 import tempfile
@@ -23,10 +24,18 @@ from tractodata.data import TEST_FILES
 import tractodata.io.fetcher as fetcher
 
 from tractodata.io.fetcher import TRACTODATA_DATASETS_URL, Dataset
-
+from tractodata.io.utils import Endpoint, Tissue
 
 fibercup_bundles = ["bundle1", "bundle2", "bundle3", "bundle4", "bundle5",
                     "bundle6", "bundle7"]
+fibercup_tissues = [Tissue.WM.value]
+
+
+def _build_fibercup_bundle_endpoints():
+
+    return list(
+        itertools.product(
+            fibercup_bundles, [Endpoint.HEAD.value, Endpoint.TAIL.value]))
 
 
 def _check_fibercup_img(img):
@@ -245,13 +254,56 @@ def test_list_fibercup_bundles():
     assert expected_val == obtained_val
 
 
+def test_list_fibercup_bundle_masks():
+
+    bundle_mask_names = fetcher.list_bundles_in_dataset(
+        Dataset.FIBERCUP_BUNDLE_MASKS.name)
+
+    expected_val = len(fibercup_bundles)
+    obtained_val = len(bundle_mask_names)
+
+    assert expected_val == obtained_val
+
+    expected_val = fibercup_bundles
+    obtained_val = bundle_mask_names
+
+    npt.assert_equal(expected_val, obtained_val)
+
+
+def test_list_fibercup_bundle_endpoint_masks():
+
+    bundle_endpoint_masks = fetcher.list_bundle_endpoint_masks_in_dataset(
+        Dataset.FIBERCUP_BUNDLE_ENDPOINT_MASKS.name)
+
+    expected_val = len(fibercup_bundles)*2
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    expected_val = _build_fibercup_bundle_endpoints()
+
+    expected_val = [fetcher._build_bundle_endpoint_key(elem[0], elem[1])
+                    for elem in expected_val]
+    obtained_val = bundle_endpoint_masks
+
+    npt.assert_equal(expected_val, obtained_val)
+
+
+def test_list_fibercup_tissue_maps():
+
+    tissue_names = fetcher.list_tissue_maps_in_dataset(
+        Dataset.FIBERCUP_TISSUE_MAPS.name)
+
+    expected_val = fibercup_tissues
+    obtained_val = tissue_names
+    assert expected_val == obtained_val
+
+
 def test_read_fibercup_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.FIBERCUP_ANAT.name)
 
-    npt.assert_equal(anat_img.__class__.__name__, nib.Nifti1Image.__name__)
-    npt.assert_equal(anat_img.get_fdata().dtype, np.float64)
-    npt.assert_equal(anat_img.get_fdata().shape, (64, 64, 3))
+    _check_fibercup_img(anat_img)
 
 
 def test_read_fibercup_dwi():
@@ -276,6 +328,14 @@ def test_read_fibercup_dwi():
     obtained_val = len(gtab.bvecs)
 
     assert expected_val == obtained_val
+
+
+def test_read_fibercup_tissue_maps():
+
+    wm_img = fetcher.read_dataset_tissue_maps(
+        Dataset.FIBERCUP_TISSUE_MAPS.name)[Tissue.WM.value]
+
+    _check_fibercup_img(wm_img)
 
 
 def test_read_fibercup_synth_tracking():
@@ -329,3 +389,113 @@ def test_read_fibercup_synth_bundling():
     expected_val = 683
     obtained_val = len(bundles[bundle_name[-1]])
     assert expected_val == obtained_val
+
+
+def test_read_fibercup_bundle_masks():
+
+    name = Dataset.FIBERCUP_BUNDLE_MASKS.name
+
+    bundle_masks = fetcher.read_dataset_bundle_masks(name)
+
+    expected_val = len(fibercup_bundles)
+    obtained_val = len(bundle_masks)
+
+    assert expected_val == obtained_val
+
+    mask_img = list(bundle_masks.values())[-1]
+
+    _check_fibercup_img(mask_img)
+
+    bundle_name = ["bundle1"]
+    bundle_masks = fetcher.read_dataset_bundle_masks(
+        name, bundle_name=bundle_name)
+
+    mask_img = bundle_masks[bundle_name[0]]
+
+    _check_fibercup_img(mask_img)
+
+    bundle_name = ["bundle1", "bundle7"]
+    bundle_masks = fetcher.read_dataset_bundle_masks(
+        name, bundle_name=bundle_name)
+
+    for name in bundle_name:
+        mask_img = bundle_masks[name]
+
+        _check_fibercup_img(mask_img)
+
+
+def test_read_fibercup_bundle_endpoint_masks():
+
+    name = Dataset.FIBERCUP_BUNDLE_ENDPOINT_MASKS.name
+
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(name)
+
+    expected_val = len(fibercup_bundles)*2
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    mask_endpoint_img = list(bundle_endpoint_masks.values())[-1]
+
+    _check_fibercup_img(mask_endpoint_img)
+
+    bundle_name = ["bundle3"]
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
+        name, bundle_name=bundle_name)
+
+    expected_val = 2
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    _name = fetcher._build_bundle_endpoint_key(
+        bundle_name[0], Endpoint.HEAD.value)
+    mask_endpoint_img = bundle_endpoint_masks[_name]
+
+    _check_fibercup_img(mask_endpoint_img)
+
+    bundle_name = ["bundle3", "bundle4", "bundle6"]
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
+        name, bundle_name=bundle_name)
+
+    expected_val = len(bundle_name*2)
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    for bname in bundle_name:
+        for endpt in Endpoint:
+            _name = fetcher._build_bundle_endpoint_key(bname, endpt.value)
+            mask_endpoint_img = bundle_endpoint_masks[_name]
+
+            _check_fibercup_img(mask_endpoint_img)
+
+    bundle_name = ["bundle3"]
+    endpoint_name = Endpoint.HEAD.value
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
+        name, bundle_name=bundle_name, endpoint_name=endpoint_name)
+
+    expected_val = 1
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    _name = fetcher._build_bundle_endpoint_key(bundle_name[0], endpoint_name)
+    mask_endpoint_img = bundle_endpoint_masks[_name]
+
+    _check_fibercup_img(mask_endpoint_img)
+
+    bundle_name = ["bundle3", "bundle4", "bundle6"]
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
+        name, bundle_name=bundle_name, endpoint_name=endpoint_name)
+
+    expected_val = len(bundle_name)
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    for bname in bundle_name:
+        _name = fetcher._build_bundle_endpoint_key(bname, endpoint_name)
+        mask_endpoint_img = bundle_endpoint_masks[_name]
+
+        _check_fibercup_img(mask_endpoint_img)
