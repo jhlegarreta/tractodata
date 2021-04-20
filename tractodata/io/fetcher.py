@@ -1132,20 +1132,20 @@ def get_fnames(name):
         fnames = files[
             'sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISBI2013_ANAT:
-        files, folder = fetch_isbi2013_anat()
-        return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
-    elif name == Dataset.ISBI2013_DWI:
-        files, folder = fetch_isbi2013_dwi()
-        fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
-        fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
-        fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
-        return fraw, fbval, fbvec
-    elif name == Dataset.ISBI2013_TRACTOGRAPHY:
-        files, folder = fetch_isbi2013_tractography()
-        for fname in list(files.keys()):
-            fnames = pjoin(folder, fname)
-        return fnames
+    # elif name == Dataset.ISBI2013_ANAT:
+    #   files, folder = fetch_isbi2013_anat()
+    #   return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
+    # elif name == Dataset.ISBI2013_DWI:
+    #   files, folder = fetch_isbi2013_dwi()
+    #   fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
+    #   fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
+    #   fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
+    #   return fraw, fbval, fbvec
+    # elif name == Dataset.ISBI2013_TRACTOGRAPHY:
+    #   files, folder = fetch_isbi2013_tractography()
+    #   for fname in list(files.keys()):
+    #       fnames = pjoin(folder, fname)
+    #   return fnames
     elif name == Dataset.ISMRM2015_ANAT:
         files, folder = fetch_ismrm2015_anat()
         return pjoin(folder, list(files.keys())[0])  # , "T1w.nii.gz")
