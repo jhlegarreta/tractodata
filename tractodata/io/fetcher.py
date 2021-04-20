@@ -25,6 +25,9 @@ from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.streamline import load_tractogram
 # from dipy.tracking.streamline import Streamlines
 
+from tractodata.io.utils import \
+    (Label, get_label_value_from_filename, filter_filenames_on_value)
+
 
 # Set a user-writeable file-system location to put files:
 if "TRACTODATA_HOME" in os.environ:
@@ -34,6 +37,8 @@ else:
 
 
 TRACTODATA_DATASETS_URL = "https://osf.io/"
+
+key_separator = ","
 
 
 class Dataset(enum.Enum):
@@ -51,6 +56,47 @@ class Dataset(enum.Enum):
 
 class FetcherError(Exception):
     pass
+
+
+class DatasetError(Exception):
+    pass
+
+
+def _build_bundle_key(bundle_name, hemisphere=None):
+    """Build the key for the given bundle: append the hemisphere with a
+    separator.
+
+    Parameters
+    ----------
+    bundle_name : string
+        Bundle name.
+    hemisphere : string
+        Hemisphere.
+
+    Returns
+    ----------
+    key : string
+        Key value.
+    """
+
+    key = bundle_name
+    if hemisphere:
+        key += key_separator + hemisphere
+
+    return key
+
+
+def _check_known_dataset(name):
+    """Raise a DatasetError if the dataset is unknown.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+    """
+
+    if name not in Dataset.__members__.keys():
+        raise DatasetError(_unknown_dataset_msg(name))
 
 
 def update_progressbar(progress, total_length):
@@ -97,6 +143,25 @@ def _already_there_msg(folder):
     msg = "Dataset is already in place.\nIf you want to fetch it again, "
     msg += "please first remove the file at issue in folder\n{}".format(folder)
     print(msg)
+
+
+def _unknown_dataset_msg(name):
+    """Build a message indicating that dataset is not known.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    msg : string
+        Message.
+    """
+
+    msg = "Unknown dataset.\nProvided: {}; Available: {}".format(
+        name, Dataset.__members__.keys())
+    return msg
 
 
 def _get_file_hash(filename):
@@ -1107,8 +1172,8 @@ def get_fnames(name):
 
     Parameters
     ----------
-    name : Dataset
-        Dataset instance.
+    name : string
+        Dataset name.
     Returns
     -------
     fnames : string or list
@@ -1117,94 +1182,159 @@ def get_fnames(name):
 
     print("\nDataset: {}".format(name))
 
-    if name == Dataset.FIBERCUP_ANAT:
+    if name == Dataset.FIBERCUP_ANAT.name:
         files, folder = fetch_fibercup_anat()
         return pjoin(folder, list(files.keys())[0])  # ,"T1w.nii.gz")
-    elif name == Dataset.FIBERCUP_DWI:
+    elif name == Dataset.FIBERCUP_DWI.name:
         files, folder = fetch_fibercup_dwi()
         fnames = files['sub01-dwi.zip'][2]
         return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.FIBERCUP_SYNTH_TRACKING:
+    elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
         files, folder = fetch_fibercup_synth_tracking()
         return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.FIBERCUP_SYNTH_BUNDLING:
+    elif name == Dataset.FIBERCUP_SYNTH_BUNDLING.name:
         files, folder = fetch_fibercup_synth_bundling()
         fnames = files[
             'sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
-    # elif name == Dataset.ISBI2013_ANAT:
+    # elif name == Dataset.ISBI2013_ANAT.name:
     #   files, folder = fetch_isbi2013_anat()
     #   return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
-    # elif name == Dataset.ISBI2013_DWI:
+    # elif name == Dataset.ISBI2013_DWI.name:
     #   files, folder = fetch_isbi2013_dwi()
     #   fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
     #   fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
     #   fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
     #   return fraw, fbval, fbvec
-    # elif name == Dataset.ISBI2013_TRACTOGRAPHY:
+    # elif name == Dataset.ISBI2013_TRACTOGRAPHY.name:
     #   files, folder = fetch_isbi2013_tractography()
     #   for fname in list(files.keys()):
     #       fnames = pjoin(folder, fname)
     #   return fnames
-    elif name == Dataset.ISMRM2015_ANAT:
+    elif name == Dataset.ISMRM2015_ANAT.name:
         files, folder = fetch_ismrm2015_anat()
         return pjoin(folder, list(files.keys())[0])  # , "T1w.nii.gz")
-    elif name == Dataset.ISMRM2015_DWI:
+    elif name == Dataset.ISMRM2015_DWI.name:
         files, folder = fetch_ismrm2015_dwi()
         fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
         fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
         fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
         return fraw, fbval, fbvec
-    elif name == Dataset.ISMRM2015_TRACTOGRAPHY:
+    elif name == Dataset.ISMRM2015_TRACTOGRAPHY.name:
         files, folder = fetch_ismrm2015_tractography()
         for fname in list(files.keys()):
             fnames = pjoin(folder, fname)
         return fnames
     else:
-        raise ValueError("Unknown dataset.\n"
-                         "Provided: {}; Available: {}".
-                         format(name, Dataset.__members__.values()))
+        raise DatasetError(_unknown_dataset_msg(name))
 
 
-def read_fibercup_anat():
-    """Load Fiber Cup dataset anatomy data.
-
-    Returns
-    -------
-    img : obj,
-        Nifti1Image.
-    """
-
-    fname = get_fnames(Dataset.FIBERCUP_ANAT)
-    return nib.load(fname)
-
-
-def read_fibercup_dwi():
-    """Load Fiber Cup dataset diffusion data.
-
-    Returns
-    -------
-    img : obj,
-        Nifti1Image.
-    gtab : obj,
-        GradientTable.
-    """
-
-    fraw, fbval, fbvec = get_fnames(Dataset.FIBERCUP_DWI)
-    bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
-    gtab = gradient_table(bvals, bvecs)
-    img = nib.load(fraw)
-    return img, gtab
-
-
-def read_fibercup_tractography(bundle_names=None):
-    """Load Fiber Cup dataset tractography data.
+def read_dataset_anat(name):
+    """Load dataset anatomy data.
 
     Parameters
     ----------
-    bundle_names : list
-        e.g., ["af", "cst_right", "cc"]. See all the available bundles
-        in the ``fibercup`` directory of your``$HOME/.tractodata`` folder.
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    img : Nifti1Image
+        Anatomy image.
+    """
+
+    _check_known_dataset(name)
+
+    fname = get_fnames(name)
+
+    return nib.load(fname)
+
+
+def read_dataset_dwi(name):
+    """Load dataset diffusion data.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    img : Nifti1Image
+        Diffusion image.
+    gtab : GradientTable
+        Diffusion encoding gradient information.
+    """
+
+    _check_known_dataset(name)
+
+    bval_fname, bvec_fname, dwi_fname = get_fnames(name)
+
+    bvals, bvecs = read_bvals_bvecs(bval_fname, bvec_fname)
+    gtab = gradient_table(bvals, bvecs)
+
+    img = nib.load(dwi_fname)
+
+    return img, gtab
+
+
+def read_dataset_tracking(
+        anat_name, tracking_name, space=Space.RASMM, origin=Origin.NIFTI):
+    """Load dataset tracking data.
+
+    Parameters
+    ----------
+    anat_name : string
+        Anatomy dataset name.
+    tracking_name : string
+        Tracking dataset name.
+    origin : Origin, optional
+        Origin for the returned data.
+    space : Space, optional
+        Space for the returned data.
+
+    Returns
+    -------
+    sft : StatefulTractogram
+        Tractogram.
+    """
+
+    _check_known_dataset(anat_name)
+    _check_known_dataset(tracking_name)
+
+    anat_fname = get_fnames(anat_name)
+
+    sft_fname = get_fnames(tracking_name)
+
+    sft = load_tractogram(
+        sft_fname, anat_fname, to_space=space, to_origin=origin,
+        bbox_valid_check=True, trk_header_check=True)
+
+    return sft
+
+
+def read_dataset_bundling(
+        anat_name, bundling_name, bundle_name=None, hemisphere_name=None,
+        space=Space.RASMM, origin=Origin.NIFTI):
+    """Load dataset bundling data.
+
+    Parameters
+    ----------
+    anat_name : string
+        Anatomy dataset name.
+    bundling_name : string
+        Bundling dataset name.
+    bundle_name : list, optional
+        e.g., ["bundle1", "bundle2", "bundle3"]. See all the available bundles
+        in the appropriate directory of your``$HOME/.tractodata`` folder. If
+        `None`, all will be loaded.
+    hemisphere_name : string, optional
+        e.g., ["L", "R"] for left or right hemispheres. If `None` all will be
+        loaded.
+    origin : Origin, optional
+        Origin for the returned data.
+    space : Space, optional
+        Space for the returned data.
 
     Returns
     -------
@@ -1212,164 +1342,34 @@ def read_fibercup_tractography(bundle_names=None):
         Dictionary with data of the bundles and the bundles as keys.
     """
 
-    space = Space.RASMM
-    origin = Origin.NIFTI
+    _check_known_dataset(anat_name)
+    _check_known_dataset(bundling_name)
 
-    path = pjoin(
-        tractodata_home, "datasets", "fibercup", "derivatives", "tractography",
-        "sub-01", "dwi")
+    anat_fname = get_fnames(anat_name)
 
-    anat_fname = get_fnames(Dataset.FIBERCUP_ANAT)
+    fnames = get_fnames(bundling_name)
 
     bundles = dict()
 
-    for bundle in bundle_names:
+    fnames_shortlist = fnames
 
-        sft = load_tractogram(
-            pjoin(path, bundle + ".trk"), anat_fname, to_space=space,
-            to_origin=origin, bbox_valid_check=True,
-            trk_header_check=True).streamlines
+    if bundle_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames, Label.BUNDLE, bundle_name)
 
-        bundles[bundle] = sft
+    if hemisphere_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames_shortlist, Label.HEMISPHERE, hemisphere_name)
 
-    return bundles
+    for fname in fnames_shortlist:
+        _bundle_name = get_label_value_from_filename(fname, Label.BUNDLE)
+        _hemisphere_name = get_label_value_from_filename(
+            fname, Label.HEMISPHERE)
 
+        key = _build_bundle_key(_bundle_name, hemisphere=_hemisphere_name)
 
-def read_isbi2013_anat():
-    """Load ISBI 2013 HARDI Reconstruction Challenge dataset anatomy data.
-
-    Returns
-    -------
-    img : obj,
-        Nifti1Image.
-    """
-
-    fname = get_fnames(Dataset.ISBI2013_ANAT)
-    return nib.load(fname)
-
-
-def read_isbi2013_dwi():
-    """Load ISBI 2013 HARDI Reconstruction Challenge dataset diffusion data.
-
-    Returns
-    -------
-    img : obj,
-        Nifti1Image.
-    gtab : obj,
-        GradientTable.
-    """
-
-    fraw, fbval, fbvec = get_fnames(Dataset.ISBI2013_DWI)
-    bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
-    gtab = gradient_table(bvals, bvecs)
-    img = nib.load(fraw)
-    return img, gtab
-
-
-def read_isbi2013_tractography(bundle_names=None):
-    """Load ISBI 2013 HARDI Reconstruction Challenge dataset tractography data.
-
-    Parameters
-    ----------
-    bundle_names : list
-        e.g., ["af", "cst_right", "cc"]. See all the available bundles
-        in the ``isbi2013`` directory of your``$HOME/.tractodata`` folder.
-
-    Returns
-    -------
-    bundles : dict
-        Dictionary with data of the bundles and the bundles as keys.
-    """
-
-    space = Space.RASMM
-    origin = Origin.NIFTI
-
-    path = pjoin(
-        tractodata_home, "datasets", "isbi2013", "derivatives", "tractography",
-        "sub-01", "dwi")
-
-    anat_fname = get_fnames(Dataset.ISBI2013_ANAT)
-
-    bundles = dict()
-
-    for bundle in bundle_names:
-
-        sft = load_tractogram(
-            pjoin(path, bundle + ".trk"), anat_fname, to_space=space,
-            to_origin=origin, bbox_valid_check=True,
-            trk_header_check=True).streamlines
-
-        bundles[bundle] = sft
-
-    return bundles
-
-
-def read_ismrm2015_anat():
-    """Load ISMRM 2015 Tractography Challenge dataset anatomy data.
-
-    Returns
-    -------
-    img : obj,
-        Nifti1Image.
-    gtab : obj,
-        GradientTable.
-    """
-
-    fname = get_fnames(Dataset.ISMRM2015_ANAT)
-    return nib.load(fname)
-
-
-def read_ismrm2015_dwi():
-    """Load ISMRM 2015 Tractography Challenge dataset diffusion data.
-
-    Returns
-    -------
-    img : obj,
-        Nifti1Image.
-    gtab : obj,
-        GradientTable.
-    """
-
-    fraw, fbval, fbvec = get_fnames(Dataset.ISMRM2015_DWI)
-    bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
-    gtab = gradient_table(bvals, bvecs)
-    img = nib.load(fraw)
-    return img, gtab
-
-
-def read_ismrm2015_tractography(bundle_names=None):
-    """Load ISMRM 2015 Tractography Challenge dataset tractography data.
-
-    Parameters
-    ----------
-    bundle_names : list
-        e.g., ["af", "cst_right", "cc"]. See all the available bundles
-        in the ``ismrm2015`` directory of your``$HOME/.tractodata`` folder.
-
-    Returns
-    -------
-    bundles : dict
-        Dictionary with data of the bundles and the bundles as keys.
-    """
-
-    space = Space.RASMM
-    origin = Origin.NIFTI
-
-    path = pjoin(
-        tractodata_home, "datasets", "ismrm2015", "derivatives",
-        "tractography", "sub-01", "dwi")
-
-    anat_fname = get_fnames(Dataset.ISMRM2015_ANAT)
-
-    bundles = dict()
-
-    for bundle in bundle_names:
-
-        sft = load_tractogram(
-            pjoin(path, bundle + ".trk"), anat_fname, to_space=space,
-            to_origin=origin, bbox_valid_check=True,
-            trk_header_check=True).streamlines
-
-        bundles[bundle] = sft
+        bundles[key] = load_tractogram(
+            fname, anat_fname, to_space=space, to_origin=origin,
+            bbox_valid_check=True, trk_header_check=True)
 
     return bundles

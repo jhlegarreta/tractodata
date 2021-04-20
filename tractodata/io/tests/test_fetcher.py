@@ -5,6 +5,8 @@ import os.path as op
 import os
 import tempfile
 
+import nibabel as nib
+import numpy as np
 import numpy.testing as npt
 
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -14,12 +16,25 @@ from urllib.request import pathname2url
 
 from importlib import reload
 
+from dipy.io.streamline import StatefulTractogram
 from nibabel.tmpdirs import TemporaryDirectory
 
 from tractodata.data import TEST_FILES
 import tractodata.io.fetcher as fetcher
 
 from tractodata.io.fetcher import TRACTODATA_DATASETS_URL, Dataset
+
+
+fibercup_bundles = ["bundle1", "bundle2", "bundle3", "bundle4", "bundle5",
+                    "bundle6", "bundle7"]
+
+
+def _check_fibercup_img(img):
+
+    npt.assert_equal(
+        img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(img.get_fdata().dtype, np.float64)
+    npt.assert_equal(img.get_fdata().shape, (64, 64, 3))
 
 
 def test_check_hash():
@@ -188,7 +203,7 @@ def test_fetch_data():
 
 def test_get_fnames():
 
-    for name in Dataset.__members__.values():
+    for name in Dataset.__members__.keys():
         fetcher.get_fnames(name)
 
 
@@ -212,3 +227,89 @@ def test_tractodata_home():
     # Return to previous state
     if old_home:
         os.environ["TRACTODATA_HOME"] = old_home
+
+
+def test_read_fibercup_anat():
+
+    anat_img = fetcher.read_dataset_anat(Dataset.FIBERCUP_ANAT.name)
+
+    npt.assert_equal(anat_img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(anat_img.get_fdata().dtype, np.float64)
+    npt.assert_equal(anat_img.get_fdata().shape, (64, 64, 3))
+
+
+def test_read_fibercup_dwi():
+
+    dwi_img, gtab = fetcher.read_dataset_dwi(Dataset.FIBERCUP_DWI.name)
+
+    npt.assert_equal(dwi_img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(dwi_img.get_fdata().dtype, np.float64)
+    npt.assert_equal(dwi_img.get_fdata().shape, (64, 64, 3, 31))
+
+    expected_val = 31
+    obtained_val = len(gtab.bvals)
+
+    assert expected_val == obtained_val
+
+    expected_val = (0, 1000)
+
+    assert np.logical_and(
+        gtab.bvals >= expected_val[0], gtab.bvals <= expected_val[-1]).all()
+
+    expected_val = 31
+    obtained_val = len(gtab.bvecs)
+
+    assert expected_val == obtained_val
+
+
+def test_read_fibercup_synth_tracking():
+
+    sft = fetcher.read_dataset_tracking(
+        Dataset.FIBERCUP_ANAT.name, Dataset.FIBERCUP_SYNTH_TRACKING.name)
+
+    npt.assert_equal(sft.__class__.__name__, StatefulTractogram.__name__)
+
+    expected_val = 7833
+    obtained_val = len(sft)
+
+    assert expected_val == obtained_val
+
+
+def test_read_fibercup_synth_bundling():
+
+    anat_name = Dataset.FIBERCUP_ANAT.name
+    bundling_name = Dataset.FIBERCUP_SYNTH_BUNDLING.name
+
+    bundles = fetcher.read_dataset_bundling(anat_name, bundling_name)
+
+    expected_val = len(fibercup_bundles)
+    obtained_val = len(bundles)
+
+    assert expected_val == obtained_val
+
+    npt.assert_equal(
+        bundles["bundle4"].__class__.__name__, StatefulTractogram.__name__)
+
+    expected_val = 1413
+    obtained_val = len(bundles["bundle4"])
+    assert expected_val == obtained_val
+
+    bundle_name = ["bundle5"]
+    bundles = fetcher.read_dataset_bundling(
+        anat_name, bundling_name, bundle_name=bundle_name)
+
+    expected_val = 683
+    obtained_val = len(bundles[bundle_name[0]])
+    assert expected_val == obtained_val
+
+    bundle_name = ["bundle4", "bundle5"]
+    bundles = fetcher.read_dataset_bundling(
+        anat_name, bundling_name, bundle_name=bundle_name)
+
+    expected_val = 1413
+    obtained_val = len(bundles[bundle_name[0]])
+    assert expected_val == obtained_val
+
+    expected_val = 683
+    obtained_val = len(bundles[bundle_name[-1]])
+    assert expected_val == obtained_val
