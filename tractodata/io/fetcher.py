@@ -1229,6 +1229,37 @@ def get_fnames(name):
         raise DatasetError(_unknown_dataset_msg(name))
 
 
+def list_bundles_in_dataset(name):
+    """List bundle names in dataset.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    bundles : list
+        Bundle names.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    bundles = []
+
+    for fname in fnames:
+        _bundle = get_label_value_from_filename(fname, Label.BUNDLE)
+        hemisphere = get_label_value_from_filename(fname, Label.HEMISPHERE)
+
+        bundle = _build_bundle_key(_bundle, hemisphere=hemisphere)
+
+        bundles.append(bundle)
+
+    return bundles
+
+
 def read_dataset_anat(name):
     """Load dataset anatomy data.
 

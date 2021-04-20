@@ -229,6 +229,22 @@ def test_tractodata_home():
         os.environ["TRACTODATA_HOME"] = old_home
 
 
+def test_list_fibercup_bundles():
+
+    bundle_names = fetcher.list_bundles_in_dataset(
+        Dataset.FIBERCUP_SYNTH_BUNDLING.name)
+
+    expected_val = len(fibercup_bundles)
+    obtained_val = len(bundle_names)
+
+    assert expected_val == obtained_val
+
+    expected_val = fibercup_bundles
+    obtained_val = bundle_names
+
+    assert expected_val == obtained_val
+
+
 def test_read_fibercup_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.FIBERCUP_ANAT.name)
