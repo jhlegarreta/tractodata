@@ -52,9 +52,9 @@ class Dataset(enum.Enum):
     # ISBI2013_ANAT = "isbi2013_anat"
     # ISBI2013_DWI = "isbi2013_dwi"
     # ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
-    ISMRM2015_ANAT = "ismrm2015_anat"
-    ISMRM2015_DWI = "ismrm2015_dwi"
-    ISMRM2015_TRACTOGRAPHY = "ismrm2015_tractography"
+    # ISMRM2015_ANAT = "ismrm2015_anat"
+    # ISMRM2015_DWI = "ismrm2015_dwi"
+    # ISMRM2015_TRACTOGRAPHY = "ismrm2015_tractography"
 
 
 class FetcherError(Exception):
@@ -1297,20 +1297,20 @@ def get_fnames(name):
     #   for fname in list(files.keys()):
     #       fnames = pjoin(folder, fname)
     #   return fnames
-    elif name == Dataset.ISMRM2015_ANAT.name:
-        files, folder = fetch_ismrm2015_anat()
-        return pjoin(folder, list(files.keys())[0])  # , "T1w.nii.gz")
-    elif name == Dataset.ISMRM2015_DWI.name:
-        files, folder = fetch_ismrm2015_dwi()
-        fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
-        fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
-        fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
-        return fraw, fbval, fbvec
-    elif name == Dataset.ISMRM2015_TRACTOGRAPHY.name:
-        files, folder = fetch_ismrm2015_tractography()
-        for fname in list(files.keys()):
-            fnames = pjoin(folder, fname)
-        return fnames
+    # elif name == Dataset.ISMRM2015_ANAT.name:
+    #   files, folder = fetch_ismrm2015_anat()
+    #   return pjoin(folder, list(files.keys())[0])  # , "T1w.nii.gz")
+    # elif name == Dataset.ISMRM2015_DWI.name:
+    #   files, folder = fetch_ismrm2015_dwi()
+    #   fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
+    #   fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
+    #   fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
+    #   return fraw, fbval, fbvec
+    # elif name == Dataset.ISMRM2015_TRACTOGRAPHY.name:
+    #   files, folder = fetch_ismrm2015_tractography()
+    #   for fname in list(files.keys()):
+    #       fnames = pjoin(folder, fname)
+    #   return fnames
     else:
         raise DatasetError(_unknown_dataset_msg(name))
 
