@@ -52,9 +52,10 @@ class Dataset(enum.Enum):
     # ISBI2013_ANAT = "isbi2013_anat"
     # ISBI2013_DWI = "isbi2013_dwi"
     # ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
-    # ISMRM2015_ANAT = "ismrm2015_anat"
-    # ISMRM2015_DWI = "ismrm2015_dwi"
-    # ISMRM2015_TRACTOGRAPHY = "ismrm2015_tractography"
+    ISMRM2015_ANAT = "ismrm2015_anat"
+    ISMRM2015_DWI = "ismrm2015_dwi"
+    ISMRM2015_SYNTH_TRACKING = "ismrm2015_synth_tracking"
+    ISMRM2015_SYNTH_BUNDLING = "ismrm2015_synth_bundling"
 
 
 class FetcherError(Exception):
@@ -517,16 +518,14 @@ fetch_isbi2013_tractography = _make_fetcher(
     unzip=True
     )
 
-
 fetch_ismrm2015_anat = _make_fetcher(
     "fetch_ismrm2015_anat",
     pjoin(tractodata_home, "datasets", "ismrm2015", "raw", "sub-01", "anat"),
-    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "raw/" +
-    "sub-01/" + "anat/",
-    ["T1w.nii.gz"],
-    ["T1w.nii.gz"],
-    ["file1_SHA"],
-    data_size="12KB",
+    TRACTODATA_DATASETS_URL + "gdvch/",
+    ["download"],
+    ["sub01-T1w.nii.gz"],
+    ["65af72af2824abce0243cb09555e3a6c"],
+    data_size="7.3MB",
     doc="Download ISMRM 2015 Tractography Challenge dataset anatomy data",
     unzip=False
     )
@@ -534,102 +533,40 @@ fetch_ismrm2015_anat = _make_fetcher(
 fetch_ismrm2015_dwi = _make_fetcher(
     "fetch_ismrm2015_dwi",
     pjoin(tractodata_home, "datasets", "ismrm2015", "raw", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "raw/" +
-    "sub-01/" + "dwi/",
-    ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
-    ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
-    ["file1_SHA",
-     "file2_SHA",
-     "file3_SHA"],
-    data_size="12KB",
+    TRACTODATA_DATASETS_URL + "4s9ev/",
+    ["download"],
+    ["sub01-dwi.zip"],
+    ["3f228979ca1960f25aa9abc14dc708b8"],
+    data_size="7.1MB",
     doc="Download ISMRM 2015 Tractography Challenge dataset diffusion data",
     unzip=True
     )
 
-fetch_ismrm2015_tractography = _make_fetcher(
-    "fetch_ismrm2015_tractography",
+fetch_ismrm2015_synth_tracking = _make_fetcher(
+    "fetch_ismrm2015_synth_tracking",
     pjoin(
-        tractodata_home, "datasets", "ismrm2015", "derivatives",
-        "tractography", "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "derivatives/" +
-    "tractography/" + "sub-01/" + "dwi/",
-    ["CC.trk",
-     "Cingulum_left.trk",
-     "Cingulum_right.trk",
-     "CST_left.trk",
-     "CST_right.trk",
-     "FPT_left.trk",
-     "FPT_right.trk",
-     "Fornix.trk",
-     "ICP_left.trk",
-     "ICP_right.trk",
-     "ILF_left.trk",
-     "ILF_right.trk",
-     "MCP.trk",
-     "OR_left.trk",
-     "OR_right.trk",
-     "POPT_left.trk",
-     "POPT_right.trk",
-     "SCP_left.trk",
-     "SCP_right.trk",
-     "SLF_left.trk",
-     "SLF_right.trk",
-     "UF_left.trk",
-     "UF_right.trk",
-     "CST.trk",
-     "OR.trk"],
-    ["CC.trk",
-     "Cingulum_left.trk",
-     "Cingulum_right.trk",
-     "CST_left.trk",
-     "CST_right.trk",
-     "FPT_left.trk",
-     "FPT_right.trk",
-     "Fornix.trk",
-     "ICP_left.trk",
-     "ICP_right.trk",
-     "ILF_left.trk",
-     "ILF_right.trk",
-     "MCP.trk",
-     "OR_left.trk",
-     "OR_right.trk",
-     "POPT_left.trk",
-     "POPT_right.trk",
-     "SCP_left.trk",
-     "SCP_right.trk",
-     "SLF_left.trk",
-     "SLF_right.trk",
-     "UF_left.trk",
-     "UF_right.trk",
-     "CST.trk",
-     "OR.trk"],
-    ["file1_SHA",
-     "file2_SHA"
-     "file3_SHA",
-     "file4_SHA",
-     "file5_SHA",
-     "file6_SHA",
-     "file7_SHA",
-     "file8_SHA",
-     "file9_SHA",
-     "file10_SHA",
-     "file11_SHA",
-     "file12_SHA",
-     "file13_SHA",
-     "file14_SHA",
-     "file15_SHA",
-     "file16_SHA",
-     "file17_SHA",
-     "file18_SHA",
-     "file19_SHA",
-     "file20_SHA",
-     "file21_SHA",
-     "file22_SHA",
-     "file23_SHA",
-     "file24_SHA",
-     "file25_SHA"],
-    data_size="12KB",
-    doc="Download ISMRM 2015 Tractography Challenge tractography data",
+        tractodata_home, "datasets", "ismrm2015", "derivatives", "tracking",
+        "synth", "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "nxmr8/",
+    ["download"],
+    ["sub01-dwi_space-orig_desc-synth_tractography.trk"],
+    ["2a72eeb2949285176344eca31f0b3a39"],
+    data_size="235.8MB",
+    doc="Download ISMRM 2015 Tractography Challenge synthetic tracking data",
+    unzip=False
+    )
+
+fetch_ismrm2015_synth_bundling = _make_fetcher(
+    "fetch_ismrm2015_synth_bundling",
+    pjoin(
+        tractodata_home, "datasets", "ismrm2015", "derivatives", "bundling",
+        "synth", "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "5bzaf/",
+    ["download"],
+    ["sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip"],
+    ["69daad08e5093fd3eff9a2fbf26777bc"],
+    data_size="217.6MB",
+    doc="Download ISMRM 2015 Tractography Challenge dataset synthetic bundling data",  # noqa E501
     unzip=True
     )
 
@@ -1257,7 +1194,7 @@ def get_fnames(name):
 
     if name == Dataset.FIBERCUP_ANAT.name:
         files, folder = fetch_fibercup_anat()
-        return pjoin(folder, list(files.keys())[0])  # ,"T1w.nii.gz")
+        return pjoin(folder, list(files.keys())[0])
     elif name == Dataset.FIBERCUP_DWI.name:
         files, folder = fetch_fibercup_dwi()
         fnames = files['sub01-dwi.zip'][2]
@@ -1297,20 +1234,21 @@ def get_fnames(name):
     #   for fname in list(files.keys()):
     #       fnames = pjoin(folder, fname)
     #   return fnames
-    # elif name == Dataset.ISMRM2015_ANAT.name:
-    #   files, folder = fetch_ismrm2015_anat()
-    #   return pjoin(folder, list(files.keys())[0])  # , "T1w.nii.gz")
-    # elif name == Dataset.ISMRM2015_DWI.name:
-    #   files, folder = fetch_ismrm2015_dwi()
-    #   fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
-    #   fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
-    #   fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
-    #   return fraw, fbval, fbvec
-    # elif name == Dataset.ISMRM2015_TRACTOGRAPHY.name:
-    #   files, folder = fetch_ismrm2015_tractography()
-    #   for fname in list(files.keys()):
-    #       fnames = pjoin(folder, fname)
-    #   return fnames
+    elif name == Dataset.ISMRM2015_ANAT.name:
+        files, folder = fetch_ismrm2015_anat()
+        return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.ISMRM2015_DWI.name:
+        files, folder = fetch_ismrm2015_dwi()
+        fnames = files['sub01-dwi.zip'][2]
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.ISMRM2015_SYNTH_TRACKING.name:
+        files, folder = fetch_ismrm2015_synth_tracking()
+        return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.ISMRM2015_SYNTH_BUNDLING.name:
+        files, folder = fetch_ismrm2015_synth_bundling()
+        fnames = files[
+            'sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
     else:
         raise DatasetError(_unknown_dataset_msg(name))
 
