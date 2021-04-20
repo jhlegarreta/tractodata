@@ -44,8 +44,11 @@ key_separator = ","
 class Dataset(enum.Enum):
     FIBERCUP_ANAT = "fibercup_anat"
     FIBERCUP_DWI = "fibercup_dwi"
+    FIBERCUP_TISSUE_MAPS = "fibercup_tissue_maps"
     FIBERCUP_SYNTH_TRACKING = "fibercup_synth_tracking"
     FIBERCUP_SYNTH_BUNDLING = "fibercup_synth_bundling"
+    FIBERCUP_BUNDLE_MASKS = "fibercup_bundle_masks"
+    FIBERCUP_BUNDLE_ENDPOINT_MASKS = "fibercup_bundle_endpoint_masks"
     # ISBI2013_ANAT = "isbi2013_anat"
     # ISBI2013_DWI = "isbi2013_dwi"
     # ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
@@ -63,14 +66,14 @@ class DatasetError(Exception):
 
 
 def _build_bundle_key(bundle_name, hemisphere=None):
-    """Build the key for the given bundle: append the hemisphere with a
-    separator.
+    """Build the key for the given bundle: append the hemisphere (if any) with
+    a separator.
 
     Parameters
     ----------
     bundle_name : string
         Bundle name.
-    hemisphere : string
+    hemisphere : string, optional
         Hemisphere.
 
     Returns
@@ -82,6 +85,34 @@ def _build_bundle_key(bundle_name, hemisphere=None):
     key = bundle_name
     if hemisphere:
         key += key_separator + hemisphere
+
+    return key
+
+
+def _build_bundle_endpoint_key(bundle_name, endpoint, hemisphere=None):
+    """Build the key for the given bundle endpoint: append the hemisphere (if
+    any) and the endpoint with a separator.
+
+    Parameters
+    ----------
+    bundle_name : string
+        Bundle name.
+    endpoint : string
+        Endpoint name.
+    hemisphere : string, optional
+        Hemisphere.
+
+    Returns
+    ----------
+    key : string
+        Key value.
+    """
+
+    key = bundle_name
+    if hemisphere:
+        key += key_separator + hemisphere
+
+    key += key_separator + endpoint
 
     return key
 
@@ -370,6 +401,20 @@ fetch_fibercup_dwi = _make_fetcher(
     unzip=True
     )
 
+fetch_fibercup_tissue_maps = _make_fetcher(
+    "fetch_fibercup_tissue_maps",
+    pjoin(
+        tractodata_home, "datasets", "fibercup", "derivatives", "segmentation",
+        "synth", "sub-01", "anat"),
+    TRACTODATA_DATASETS_URL + "n8q5b/",
+    ["download"],
+    ["sub01-T1w_space-orig_label-WM_dseg.nii.gz"],
+    ["7170d0192fa00b5ef069f8e7c274950c"],
+    data_size="543B",
+    doc="Download Fiber Cup dataset tissue maps",
+    unzip=False
+    )
+
 fetch_fibercup_synth_tracking = _make_fetcher(
     "fetch_fibercup_synth_tracking",
     pjoin(
@@ -395,6 +440,34 @@ fetch_fibercup_synth_bundling = _make_fetcher(
     ["60589568bc13d4093af5bb282d78e9ff"],
     data_size="8.55MB",
     doc="Download Fiber Cup dataset synthetic bundling data",
+    unzip=True
+    )
+
+fetch_fibercup_bundle_masks = _make_fetcher(
+    "fetch_fibercup_bundle_masks",
+    pjoin(
+        tractodata_home, "datasets", "fibercup", "derivatives", "bundling",
+        "synth", "sub-01", "anat"),
+    TRACTODATA_DATASETS_URL + "r5f9q/",
+    ["download"],
+    ["sub01-T1w_space-orig_desc-synth_subset-bundles_tractography.zip"],
+    ["e46d1e634e0c5b6a062d2da03edf7c0a"],
+    data_size="0.5MB",
+    doc="Download Fiber Cup dataset synthetic bundle masks",
+    unzip=True
+    )
+
+fetch_fibercup_bundle_endpoint_masks = _make_fetcher(
+    "fetch_fibercup_bundle_endpoint_masks",
+    pjoin(
+        tractodata_home, "datasets", "fibercup", "derivatives", "connectivity",
+        "synth", "sub-01", "anat"),
+    TRACTODATA_DATASETS_URL + "ytjx7/",
+    ["download"],
+    ["sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip"],  # noqa E501
+    ["5c04828968edefbefa4bf5a7a40ca5b4"],
+    data_size="6.6KB",
+    doc="Download Fiber Cup dataset synthetic bundle endpoint masks",
     unzip=True
     )
 
@@ -1189,6 +1262,9 @@ def get_fnames(name):
         files, folder = fetch_fibercup_dwi()
         fnames = files['sub01-dwi.zip'][2]
         return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.FIBERCUP_TISSUE_MAPS.name:
+        files, folder = fetch_fibercup_tissue_maps()
+        return pjoin(folder, list(files.keys())[0])
     elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
         files, folder = fetch_fibercup_synth_tracking()
         return pjoin(folder, list(files.keys())[0])
@@ -1196,6 +1272,16 @@ def get_fnames(name):
         files, folder = fetch_fibercup_synth_bundling()
         fnames = files[
             'sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.FIBERCUP_BUNDLE_MASKS.name:
+        files, folder = fetch_fibercup_bundle_masks()
+        fnames = files[
+            'sub01-T1w_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.FIBERCUP_BUNDLE_ENDPOINT_MASKS.name:
+        files, folder = fetch_fibercup_bundle_endpoint_masks()
+        fnames = files[
+            'sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
     # elif name == Dataset.ISBI2013_ANAT.name:
     #   files, folder = fetch_isbi2013_anat()
@@ -1230,7 +1316,7 @@ def get_fnames(name):
 
 
 def list_bundles_in_dataset(name):
-    """List bundle names in dataset.
+    """List dataset bundle names.
 
     Parameters
     ----------
@@ -1258,6 +1344,67 @@ def list_bundles_in_dataset(name):
         bundles.append(bundle)
 
     return bundles
+
+
+def list_bundle_endpoint_masks_in_dataset(name):
+    """List dataset bundle endpoint_names.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    bundle_endpoints : list
+        Bundle endpoint_names.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    bundle_endpoints = []
+
+    for fname in fnames:
+        _bundle = get_label_value_from_filename(fname, Label.BUNDLE)
+        hemisphere = get_label_value_from_filename(fname, Label.HEMISPHERE)
+        endpoint = get_label_value_from_filename(fname, Label.ENDPOINT)
+
+        bundle_endpoint = _build_bundle_endpoint_key(
+            _bundle, endpoint, hemisphere=hemisphere)
+
+        bundle_endpoints.append(bundle_endpoint)
+
+    return bundle_endpoints
+
+
+def list_tissue_maps_in_dataset(name):
+    """List dataset tissue map names.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    tissue_names : list
+        Tissue map names.
+    """
+
+    _check_known_dataset(name)
+
+    # For the current datasets, there only existing tissue map is the WM, so
+    # the get_fnames method returns a single filename
+    fname = get_fnames(name)
+
+    tissue_names = []
+
+    tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
+    tissue_names.append(tissue_name)
+
+    return tissue_names
 
 
 def read_dataset_anat(name):
@@ -1307,6 +1454,32 @@ def read_dataset_dwi(name):
     img = nib.load(dwi_fname)
 
     return img, gtab
+
+
+def read_dataset_tissue_maps(name):  # , tissue_names=None):
+    """Load dataset tissue maps.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    Nifti1Image tissue maps.
+    """
+
+    _check_known_dataset(name)
+
+    # For the current datasets, there only existing tissue map is the WM, so
+    # the get_fnames method returns a single filename
+    fname = get_fnames(name)
+
+    tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
+
+    tissue_maps = dict({tissue_name: nib.load(fname)})
+
+    return tissue_maps
 
 
 def read_dataset_tracking(
@@ -1404,3 +1577,106 @@ def read_dataset_bundling(
             bbox_valid_check=True, trk_header_check=True)
 
     return bundles
+
+
+def read_dataset_bundle_masks(name, bundle_name=None, hemisphere_name=None):
+    """Load dataset bundle masks.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+    bundle_name : list, optional
+        e.g., ["bundle1", "bundle2", "bundle3"]. See all the available bundles
+        in the appropriate directory of your``$HOME/.tractodata`` folder.
+    hemisphere_name : string, optional
+        e.g., ["L", "R"] for left or right hemispheres.
+
+    Returns
+    -------
+    bundles : dict
+        Dictionary with masks of the bundles and the bundles as keys.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    bundle_masks = dict()
+
+    fnames_shortlist = fnames
+
+    if bundle_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames, Label.BUNDLE, bundle_name)
+
+    if hemisphere_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames_shortlist, Label.HEMISPHERE, hemisphere_name)
+
+    for fname in fnames_shortlist:
+        _bundle_name = get_label_value_from_filename(fname, Label.BUNDLE)
+        _hemisphere_name = get_label_value_from_filename(
+            fname, Label.HEMISPHERE)
+
+        key = _build_bundle_key(_bundle_name, hemisphere=_hemisphere_name)
+
+        bundle_masks[key] = nib.load(fname)
+
+    return bundle_masks
+
+
+def read_dataset_bundle_endpoint_masks(
+        name, bundle_name=None, hemisphere_name=None, endpoint_name=None):
+    """Load dataset bundle endpoint masks.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+    bundle_name : list, optional
+        e.g., ["bundle1", "bundle2", "bundle3"]. See all the available bundles
+        in the ``fibercup`` directory of your``$HOME/.tractodata`` folder.
+    hemisphere_name : string, optional
+        e.g., ["L", "R"] for left or right hemispheres.
+    endpoint_name : string, optional
+        e.g., ["head", "tail"].
+
+    Returns
+    -------
+    bundles : dict
+        Dictionary with endpoint masks of the bundles and the bundles as keys.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    bundle_endpoint_masks = dict()
+
+    fnames_shortlist = fnames
+
+    if bundle_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames, Label.BUNDLE, bundle_name)
+
+    if hemisphere_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames_shortlist, Label.HEMISPHERE, hemisphere_name)
+
+    if endpoint_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames_shortlist, Label.ENDPOINT, endpoint_name)
+
+    for fname in fnames_shortlist:
+        _bundle_name = get_label_value_from_filename(fname, Label.BUNDLE)
+        _hemisphere_name = get_label_value_from_filename(
+            fname, Label.HEMISPHERE)
+        _endpoint_name = get_label_value_from_filename(fname, Label.ENDPOINT)
+
+        key = _build_bundle_endpoint_key(
+            _bundle_name, _endpoint_name, hemisphere=_hemisphere_name)
+
+        bundle_endpoint_masks[key] = nib.load(fname)
+
+    return bundle_endpoint_masks
