@@ -65,10 +65,10 @@ jobs:
 
     - name: Package Setup
       run: |
-        check-manifest
+        # check-manifest
         python setup.py check --metadata --strict
         python setup.py sdist
-        twine check dist/*
+        # twine check dist/*
 
     - name: Statistics
       if: success()
