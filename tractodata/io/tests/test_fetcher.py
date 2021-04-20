@@ -94,19 +94,19 @@ def test_make_fetcher():
 
         name = "fetch_fibercup_dwi"
         remote_fnames = ["download"]
-        local_fnames = ["dwi.zip"]
-        doc = "Download Fiber Cup dataset anatomy data"
-        data_size = "543B"
+        local_fnames = ["sub01-dwi.zip"]
+        doc = "Download Fiber Cup dataset diffusion data"
+        data_size = "0.39MB"
         msg = None
         unzip = True
 
-        stored_hash = "f907901563254833c5f2bc90c209b4ae"
+        stored_hash = "705396981f1bcda51de12098db968390"
 
         rel_data_folder = pjoin("datasets", "fibercup", "raw", "sub-01",
                                 "dwi")
 
         folder = pjoin(tmpdir, rel_data_folder)
-        testfile_url = TRACTODATA_DATASETS_URL + "5yqvw/"
+        testfile_url = TRACTODATA_DATASETS_URL + "br4ds/"
 
         data_fetcher = fetcher._make_fetcher(
             name, folder, testfile_url, remote_fnames, local_fnames,
@@ -118,7 +118,7 @@ def test_make_fetcher():
         except Exception as e:
             print(e)
 
-        fnames = files['dwi.zip'][2]
+        fnames = files['sub01-dwi.zip'][2]
 
         assert [op.isfile(op.join(tmpdir, f)) for f in fnames]
 
