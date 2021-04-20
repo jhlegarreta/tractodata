@@ -1107,55 +1107,55 @@ def get_fnames(name):
 
     Parameters
     ----------
-    name : Dataset enum
-        Dataset name.
+    name : Dataset
+        Dataset instance.
     Returns
     -------
-    fnames : tuple
+    fnames : string or list
         Filenames for dataset.
     """
 
     print("\nDataset: {}".format(name))
 
-    if name == Dataset.FIBERCUP_ANAT.name:
+    if name == Dataset.FIBERCUP_ANAT:
         files, folder = fetch_fibercup_anat()
         return pjoin(folder, list(files.keys())[0])  # ,"T1w.nii.gz")
-    elif name == Dataset.FIBERCUP_DWI.name:
+    elif name == Dataset.FIBERCUP_DWI:
         files, folder = fetch_fibercup_dwi()
         fnames = files['sub01-dwi.zip'][2]
         return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
+    elif name == Dataset.FIBERCUP_SYNTH_TRACKING:
         files, folder = fetch_fibercup_synth_tracking()
         return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.FIBERCUP_SYNTH_BUNDLING.name:
+    elif name == Dataset.FIBERCUP_SYNTH_BUNDLING:
         files, folder = fetch_fibercup_synth_bundling()
         fnames = files[
             'sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISBI2013_ANAT.name:
+    elif name == Dataset.ISBI2013_ANAT:
         files, folder = fetch_isbi2013_anat()
         return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
-    elif name == Dataset.ISBI2013_DWI.name:
+    elif name == Dataset.ISBI2013_DWI:
         files, folder = fetch_isbi2013_dwi()
         fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
         fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
         fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
         return fraw, fbval, fbvec
-    elif name == Dataset.ISBI2013_TRACTOGRAPHY.name:
+    elif name == Dataset.ISBI2013_TRACTOGRAPHY:
         files, folder = fetch_isbi2013_tractography()
         for fname in list(files.keys()):
             fnames = pjoin(folder, fname)
         return fnames
-    elif name == Dataset.ISMRM2015_ANAT.name:
+    elif name == Dataset.ISMRM2015_ANAT:
         files, folder = fetch_ismrm2015_anat()
         return pjoin(folder, list(files.keys())[0])  # , "T1w.nii.gz")
-    elif name == Dataset.ISMRM2015_DWI.name:
+    elif name == Dataset.ISMRM2015_DWI:
         files, folder = fetch_ismrm2015_dwi()
         fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
         fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
         fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
         return fraw, fbval, fbvec
-    elif name == Dataset.ISMRM2015_TRACTOGRAPHY.name:
+    elif name == Dataset.ISMRM2015_TRACTOGRAPHY:
         files, folder = fetch_ismrm2015_tractography()
         for fname in list(files.keys()):
             fnames = pjoin(folder, fname)
@@ -1163,7 +1163,7 @@ def get_fnames(name):
     else:
         raise ValueError("Unknown dataset.\n"
                          "Provided: {}; Available: {}".
-                         format(name, Dataset.__members__.keys()))
+                         format(name, Dataset.__members__.values()))
 
 
 def read_fibercup_anat():

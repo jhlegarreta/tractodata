@@ -188,7 +188,7 @@ def test_fetch_data():
 
 def test_get_fnames():
 
-    for name in Dataset.__members__.keys():
+    for name in Dataset.__members__.values():
         fetcher.get_fnames(name)
 
 
