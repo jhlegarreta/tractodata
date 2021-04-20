@@ -8,7 +8,7 @@ settings in ``setup.py``, the tractodata top-level docstring.
 _version_major = 0
 _version_minor = 1
 _version_micro = 0
-_version_extra = "dev"
+_version_extra = ".dev0"
 # _version_extra = ""
 
 # Format expected by setup.py and doc/conf.py: string of form "X.Y.Z"
