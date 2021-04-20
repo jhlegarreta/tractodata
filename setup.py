@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 from os.path import join as pjoin
-import glob
+# import glob
 
 from setup_helpers import read_vars_from
 
