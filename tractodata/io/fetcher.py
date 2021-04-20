@@ -54,8 +54,11 @@ class Dataset(enum.Enum):
     # ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
     ISMRM2015_ANAT = "ismrm2015_anat"
     ISMRM2015_DWI = "ismrm2015_dwi"
+    ISMRM2015_TISSUE_MAPS = "ismrm2015_tissue_maps"
     ISMRM2015_SYNTH_TRACKING = "ismrm2015_synth_tracking"
     ISMRM2015_SYNTH_BUNDLING = "ismrm2015_synth_bundling"
+    ISMRM2015_BUNDLE_MASKS = "ismrm2015_bundle_masks"
+    ISMRM2015_BUNDLE_ENDPOINT_MASKS = "ismrm2015_bundle_endpoint_masks"
 
 
 class FetcherError(Exception):
@@ -542,6 +545,20 @@ fetch_ismrm2015_dwi = _make_fetcher(
     unzip=True
     )
 
+fetch_ismrm2015_tissue_maps = _make_fetcher(
+    "fetch_ismrm2015_tissue_maps",
+    pjoin(
+        tractodata_home, "datasets", "ismrm2015", "derivatives",
+        "segmentation", "synth", "sub-01", "anat"),
+    TRACTODATA_DATASETS_URL + "hj8sd/",
+    ["download"],
+    ["sub01-T1w_space-orig_label-WM_dseg.nii.gz"],
+    ["b44487b6629c05353119d07f7c9c04f5"],
+    data_size="251.7KB",
+    doc="Download ISMRM 2015 Tractography Challenge dataset tissue maps",
+    unzip=False
+    )
+
 fetch_ismrm2015_synth_tracking = _make_fetcher(
     "fetch_ismrm2015_synth_tracking",
     pjoin(
@@ -582,6 +599,35 @@ fetch_ismrm2015_qb = _make_fetcher(
     ["file1_SHA"],
     data_size="12KB",
     doc="Download ISMRM 2015 Tractography Challenge QuickBundles centroid config data",  # noqa E501
+    unzip=True
+    )
+
+fetch_ismrm2015_bundle_masks = _make_fetcher(
+    "fetch_ismrm2015_bundle_masks",
+    pjoin(
+        tractodata_home, "datasets", "ismrm2015", "derivatives", "bundling",
+        "synth", "sub-01", "anat"),
+    TRACTODATA_DATASETS_URL + "qy2ap/",
+    ["download"],
+    ["sub01-T1w_space-orig_desc-synth_subset-bundles_tractography.zip"],
+    ["56cd19ba6b57875e582d5d704ec0312f"],
+    data_size="543.3KB",
+    doc="Download ISMRM 2015 Tractography Challenge dataset synthetic bundle masks",  # noqa E501
+    unzip=True
+    )
+
+
+fetch_ismrm2015_bundle_endpoint_masks = _make_fetcher(
+    "fetch_ismrm2015_bundle_endpoint_masks",
+    pjoin(
+        tractodata_home, "datasets", "ismrm2015", "derivatives",
+        "connectivity", "synth", "sub-01", "anat"),
+    TRACTODATA_DATASETS_URL + "24yqs/",
+    ["download"],
+    ["sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip"],  # noqa E501
+    ["30d14a729cb100aca6386230cef45284"],
+    data_size="203.3KB",
+    doc="Download ISMRM 2015 Tractography Challenge dataset synthetic bundle endpoint masks",  # noqa E501
     unzip=True
     )
 
@@ -1241,6 +1287,9 @@ def get_fnames(name):
         files, folder = fetch_ismrm2015_dwi()
         fnames = files['sub01-dwi.zip'][2]
         return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.ISMRM2015_TISSUE_MAPS.name:
+        files, folder = fetch_ismrm2015_tissue_maps()
+        return pjoin(folder, list(files.keys())[0])
     elif name == Dataset.ISMRM2015_SYNTH_TRACKING.name:
         files, folder = fetch_ismrm2015_synth_tracking()
         return pjoin(folder, list(files.keys())[0])
@@ -1248,6 +1297,16 @@ def get_fnames(name):
         files, folder = fetch_ismrm2015_synth_bundling()
         fnames = files[
             'sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.ISMRM2015_BUNDLE_MASKS.name:
+        files, folder = fetch_ismrm2015_bundle_masks()
+        fnames = files[
+            'sub01-T1w_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.ISMRM2015_BUNDLE_ENDPOINT_MASKS.name:
+        files, folder = fetch_ismrm2015_bundle_endpoint_masks()
+        fnames = files[
+            'sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
     else:
         raise DatasetError(_unknown_dataset_msg(name))
