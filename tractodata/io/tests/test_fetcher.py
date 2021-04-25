@@ -57,6 +57,26 @@ def _build_ismrm2015_bundles():
         [assoc_val, ismrm2015_commissural_bundles, proj_val]))
 
 
+def _build_ismrm2015_bundle_endpoints():
+
+    assoc_val = list(itertools.product(
+        ismrm2015_association_bundles,
+        [Hemisphere.LEFT.value, Hemisphere.RIGHT.value],
+        [Endpoint.HEAD.value, Endpoint.TAIL.value]))
+
+    commiss_val = list(itertools.product(
+        ismrm2015_commissural_bundles,
+        [Endpoint.HEAD.value, Endpoint.TAIL.value]))
+
+    proj_val = list(itertools.product(
+        ismrm2015_projection_bundles,
+        [Hemisphere.LEFT.value, Hemisphere.RIGHT.value],
+        [Endpoint.HEAD.value, Endpoint.TAIL.value]))
+
+    return list(itertools.chain.from_iterable(
+        [assoc_val, commiss_val, proj_val]))
+
+
 def _check_fibercup_img(img):
 
     npt.assert_equal(
@@ -352,6 +372,69 @@ def test_list_ismrm2015_bundles():
     npt.assert_equal(expected_val, obtained_val)
 
 
+def test_list_ismrm2015_bundle_masks():
+
+    bundle_masks = fetcher.list_bundles_in_dataset(
+        Dataset.ISMRM2015_BUNDLE_MASKS.name)
+
+    expected_val = 25
+    obtained_val = len(bundle_masks)
+    assert expected_val == obtained_val
+
+    _expected_val = _build_ismrm2015_bundles()
+
+    expected_val = []
+    for elem in _expected_val:
+        if isinstance(elem, str):
+            _name = fetcher._build_bundle_key(elem)
+        else:
+            _name = fetcher._build_bundle_key(elem[0], hemisphere=elem[1])
+
+        expected_val.append(_name)
+
+    expected_val = sorted(expected_val)
+    obtained_val = sorted(bundle_masks)
+
+    npt.assert_equal(expected_val, obtained_val)
+
+
+def test_list_ismrm2015_bundle_endpoint_masks():
+
+    bundle_endpoint_masks = fetcher.list_bundle_endpoint_masks_in_dataset(
+        Dataset.ISMRM2015_BUNDLE_ENDPOINT_MASKS.name)
+
+    expected_val = 25*2
+    obtained_val = len(bundle_endpoint_masks)
+    assert expected_val == obtained_val
+
+    _expected_val = _build_ismrm2015_bundle_endpoints()
+
+    expected_val = []
+    for elem in _expected_val:
+        if len(elem) == 2:
+            _name = fetcher._build_bundle_endpoint_key(elem[0], elem[1])
+        else:
+            _name = fetcher._build_bundle_endpoint_key(
+                elem[0], elem[2], hemisphere=elem[1])
+
+        expected_val.append(_name)
+
+    expected_val = sorted(expected_val)
+    obtained_val = sorted(bundle_endpoint_masks)
+
+    npt.assert_equal(expected_val, obtained_val)
+
+
+def test_list_ismrm2015_tissue_maps():
+
+    tissue_names = fetcher.list_tissue_maps_in_dataset(
+        Dataset.ISMRM2015_TISSUE_MAPS.name)
+
+    expected_val = ismrm2015_tissues
+    obtained_val = tissue_names
+    assert expected_val == obtained_val
+
+
 def test_read_fibercup_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.FIBERCUP_ANAT.name)
@@ -585,6 +668,14 @@ def test_read_ismrm2015_dwi():
     assert expected_val == obtained_val
 
 
+def test_read_ismrm2015_tissue_maps():
+
+    wm_img = fetcher.read_dataset_tissue_maps(
+        Dataset.ISMRM2015_TISSUE_MAPS.name)[Tissue.WM.value]
+
+    _check_ismrm2015_img(wm_img)
+
+
 def test_read_ismrm2015_synth_tracking():
 
     sft = fetcher.read_dataset_tracking(
@@ -700,3 +791,144 @@ def test_read_ismrm2015_synth_bundling():
     expected_val = 12497
     obtained_val = len(bundles[_name])
     assert expected_val == obtained_val
+
+
+def test_read_ismrm2015_bundle_masks():
+
+    name = Dataset.ISMRM2015_BUNDLE_MASKS.name
+
+    bundle_masks = fetcher.read_dataset_bundle_masks(name)
+
+    expected_val = 25
+    obtained_val = len(bundle_masks)
+
+    assert expected_val == obtained_val
+
+    mask_img = list(bundle_masks.values())[-1]
+
+    _check_ismrm2015_img(mask_img)
+
+    bundle_name = ["CST"]
+    bundle_masks = fetcher.read_dataset_bundle_masks(
+        name, bundle_name=bundle_name)
+
+    _name = fetcher._build_bundle_key(
+        bundle_name[0], hemisphere=Hemisphere.LEFT.value)
+    mask_img = bundle_masks[_name]
+
+    _check_ismrm2015_img(mask_img)
+
+    bundle_name = ["CST", "Fornix"]
+    bundle_masks = fetcher.read_dataset_bundle_masks(
+        name, bundle_name=bundle_name)
+
+    expected_val = 3
+    obtained_val = len(bundle_masks)
+    assert expected_val == obtained_val
+
+    mask_img = bundle_masks[bundle_name[-1]]
+
+    _check_ismrm2015_img(mask_img)
+
+    _name = fetcher._build_bundle_key(
+        bundle_name[0], hemisphere=Hemisphere.RIGHT.value)
+    mask_img = bundle_masks[_name]
+
+    _check_ismrm2015_img(mask_img)
+
+    bundle_name = ["CP", "CST"]
+    hemisphere_name = Hemisphere.RIGHT.value
+    bundle_masks = fetcher.read_dataset_bundle_masks(
+        name, bundle_name=bundle_name, hemisphere_name=hemisphere_name)
+
+    assert bundle_name[0] not in bundle_masks.keys()
+
+    expected_val = 1
+    obtained_val = len(bundle_masks)
+    assert expected_val == obtained_val
+
+    _name = fetcher._build_bundle_key(
+        bundle_name[-1], hemisphere=hemisphere_name)
+    mask_img = bundle_masks[_name]
+
+    _check_ismrm2015_img(mask_img)
+
+
+def test_read_ismrm2015_bundle_endpoint_masks():
+
+    name = Dataset.ISMRM2015_BUNDLE_ENDPOINT_MASKS.name
+
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(name)
+
+    expected_val = 50
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    mask_endpoint_img = list(bundle_endpoint_masks.values())[-1]
+
+    _check_ismrm2015_img(mask_endpoint_img)
+
+    bundle_name = ["CST"]
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
+        name, bundle_name=bundle_name)
+
+    expected_val = 4
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    _name = fetcher._build_bundle_endpoint_key(
+        bundle_name[0], Endpoint.HEAD.value, hemisphere=Hemisphere.LEFT.value)
+    mask_endpoint_img = bundle_endpoint_masks[_name]
+
+    _check_ismrm2015_img(mask_endpoint_img)
+
+    bundle_name = ["OR"]
+    endpoint_name = Endpoint.HEAD.value
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
+        name, bundle_name=bundle_name, endpoint_name=endpoint_name)
+
+    expected_val = 2
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    _name = fetcher._build_bundle_endpoint_key(
+        bundle_name[0], endpoint_name, hemisphere=Hemisphere.LEFT.value)
+    mask_endpoint_img = bundle_endpoint_masks[_name]
+
+    _check_ismrm2015_img(mask_endpoint_img)
+
+    bundle_name = ["CA", "CC", "Fornix", "MCP"]
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
+        name, bundle_name=bundle_name, endpoint_name=endpoint_name)
+
+    expected_val = len(bundle_name)
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    for bname in bundle_name:
+        _name = fetcher._build_bundle_endpoint_key(bname, endpoint_name)
+        mask_endpoint_img = bundle_endpoint_masks[_name]
+
+        _check_ismrm2015_img(mask_endpoint_img)
+
+    bundle_name = ["ICP", "SCP"]
+    hemisphere_name = "R"
+    bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
+        name, bundle_name=bundle_name, hemisphere_name=hemisphere_name,
+        endpoint_name=endpoint_name)
+
+    expected_val = 2
+    obtained_val = len(bundle_endpoint_masks)
+
+    assert expected_val == obtained_val
+
+    for bname in bundle_name:
+        _name = fetcher._build_bundle_endpoint_key(
+            bname, endpoint_name, hemisphere=hemisphere_name)
+        mask_endpoint_img = bundle_endpoint_masks[_name]
+
+        _check_ismrm2015_img(mask_endpoint_img)
