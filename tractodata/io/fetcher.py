@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import enum
+import itertools
 import os
 import subprocess
 import sys
@@ -10,6 +11,7 @@ import tarfile
 import zipfile
 
 import nibabel as nib
+import pandas as pd
 
 from os.path import join as pjoin
 from hashlib import md5
@@ -26,7 +28,8 @@ from dipy.io.streamline import load_tractogram
 # from dipy.tracking.streamline import Streamlines
 
 from tractodata.io.utils import \
-    (Label, get_label_value_from_filename, filter_filenames_on_value)
+    (Label, get_label_value_from_filename, get_longest_common_subseq,
+     filter_filenames_on_value)
 
 
 # Set a user-writeable file-system location to put files:
@@ -39,6 +42,14 @@ else:
 TRACTODATA_DATASETS_URL = "https://osf.io/"
 
 key_separator = ","
+
+ismrm2015_submission_angular_error_filename_label = "angular_error"
+ismrm2015_submission_individual_bundle_filename_label = "individual_bundle"
+ismrm2015_submission_overall_filename_label = "overall"
+
+ismrm2015_submission_data_bundle_label = "Bundle"
+ismrm2015_submission_data_roi_label = "ROI"
+ismrm2015_submission_data_submission_id_label = "Submission ID"
 
 
 class Dataset(enum.Enum):
@@ -59,6 +70,7 @@ class Dataset(enum.Enum):
     ISMRM2015_SYNTH_BUNDLING = "ismrm2015_synth_bundling"
     ISMRM2015_BUNDLE_MASKS = "ismrm2015_bundle_masks"
     ISMRM2015_BUNDLE_ENDPOINT_MASKS = "ismrm2015_bundle_endpoint_masks"
+    ISMRM2015_CHALLENGE_SUBMISSION = "ismrm2015_challenge_submission"
 
 
 class FetcherError(Exception):
@@ -634,590 +646,13 @@ fetch_ismrm2015_bundle_endpoint_masks = _make_fetcher(
 fetch_ismrm2015_submission_res = _make_fetcher(
     "fetch_ismrm2015_submission_res",
     pjoin(
-        tractodata_home, "datasets", "ismrm2015", "derivatives", "submissions",
-        "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "derivatives/" +
-    "submissions/" + "sub-01/" + "dwi/",
-    ["ismrm2015_tractography_challenge_overall_results.csv",
-     "ismrm2015_tractography_challenge_submission1-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission2-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission2-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission4-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission4-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission5-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission5-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission5-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission5-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission8-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission8-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-5_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-5_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-6_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-6_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-7_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-7_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-8_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-8_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-9_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-9_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-10_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-10_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-11_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-11_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-12_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-12_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-13_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-13_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-14_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-14_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-15_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-15_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-16_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-16_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-17_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-17_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-18_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-18_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-19_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-19_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission11-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission11-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission11-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission11-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission15-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission15-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-5_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-5_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-6_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-6_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-7_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-7_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-8_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-8_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-9_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-9_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-10_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-10_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-11_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-11_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-12_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-12_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-13_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-13_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-14_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-14_individual_bundle_results.csv"],  # noqa E501
-    ["ismrm2015_tractography_challenge_overall_results.csv",
-     "ismrm2015_tractography_challenge_submission1-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission1-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission2-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission2-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission3-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission4-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission4-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission5-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission5-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission5-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission5-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission6-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission7-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission8-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission8-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission9-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-5_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-5_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-6_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-6_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-7_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-7_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-8_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-8_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-9_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-9_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-10_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-10_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-11_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-11_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-12_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-12_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-13_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-13_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-14_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-14_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-15_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-15_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-16_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-16_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-17_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-17_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-18_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-18_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-19_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission10-19_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission11-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission11-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission11-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission11-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission12-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission13-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission14-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission15-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission15-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission16-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission17-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission18-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission19-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-0_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-0_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-1_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-1_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-2_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-2_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-3_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-3_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-4_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-4_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-5_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-5_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-6_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-6_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-7_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-7_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-8_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-8_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-9_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-9_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-10_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-10_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-11_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-11_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-12_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-12_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-13_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-13_individual_bundle_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-14_angular_error_results.csv",  # noqa E501
-     "ismrm2015_tractography_challenge_submission20-14_individual_bundle_results.csv"],  # noqa E501
-     ["ismrm2015_tractography_challenge_overall_results_SHA",
-      "file1-0_angular_error_results_SHA",
-      "file1-0_individual_bundle_results_SHA",
-      "file1-1_angular_error_results_SHA",
-      "file1-1_individual_bundle_results_SHA",
-      "file1-2_angular_error_results_SHA",
-      "file1-2_individual_bundle_results_SHA",
-      "file1-3_angular_error_results_SHA",
-      "file1-3_individual_bundle_results_SHA",
-      "file1-4_angular_error_results_SHA",
-      "file1-4_individual_bundle_results_SHA",
-      "file2-0_angular_error_results_SHA",
-      "file2-0_individual_bundle_results_SHA",
-      "file3-0_angular_error_results_SHA",
-      "file3-0_individual_bundle_results_SHA",
-      "file3-1_angular_error_results_SHA",
-      "file3-1_individual_bundle_results_SHA",
-      "file3-2_angular_error_results_SHA",
-      "file3-2_individual_bundle_results_SHA",
-      "file3-3_angular_error_results_SHA",
-      "file3-3_individual_bundle_results_SHA",
-      "file3-4_angular_error_results_SHA",
-      "file3-4_individual_bundle_results_SHA",
-      "file4-0_angular_error_results_SHA",
-      "file4-0_individual_bundle_results_SHA",
-      "file5-0_angular_error_results_SHA",
-      "file5-0_individual_bundle_results_SHA",
-      "file5-1_angular_error_results_SHA",
-      "file5-1_individual_bundle_results_SHA",
-      "file6-0_angular_error_results_SHA",
-      "file6-0_individual_bundle_results_SHA",
-      "file6-1_angular_error_results_SHA",
-      "file6-1_individual_bundle_results_SHA",
-      "file6-2_angular_error_results_SHA",
-      "file6-2_individual_bundle_results_SHA",
-      "file6-3_angular_error_results_SHA",
-      "file6-3_individual_bundle_results_SHA",
-      "file6-4_angular_error_results_SHA",
-      "file6-4_individual_bundle_results_SHA",
-      "file7-0_angular_error_results_SHA",
-      "file7-0_individual_bundle_results_SHA",
-      "file7-1_angular_error_results_SHA",
-      "file7-1_individual_bundle_results_SHA",
-      "file7-2_angular_error_results_SHA",
-      "file7-2_individual_bundle_results_SHA",
-      "file7-3_angular_error_results_SHA",
-      "file7-3_individual_bundle_results_SHA",
-      "file8-0_angular_error_results_SHA",
-      "file8-0_individual_bundle_results_SHA",
-      "file9-0_angular_error_results_SHA",
-      "file9-0_individual_bundle_results_SHA",
-      "file9-1_angular_error_results_SHA",
-      "file9-1_individual_bundle_results_SHA",
-      "file9-2_angular_error_results_SHA",
-      "file9-2_individual_bundle_results_SHA",
-      "file9-3_angular_error_results_SHA",
-      "file9-3_individual_bundle_results_SHA",
-      "file9-4_angular_error_results_SHA",
-      "file9-4_individual_bundle_results_SHA",
-      "file10-0_angular_error_results_SHA",
-      "file10-0_individual_bundle_results_SHA",
-      "file10-1_angular_error_results_SHA",
-      "file10-1_individual_bundle_results_SHA",
-      "file10-2_angular_error_results_SHA",
-      "file10-2_individual_bundle_results_SHA",
-      "file10-3_angular_error_results_SHA",
-      "file10-3_individual_bundle_results_SHA",
-      "file10-4_angular_error_results_SHA",
-      "file10-4_individual_bundle_results_SHA",
-      "file10-5_angular_error_results_SHA",
-      "file10-5_individual_bundle_results_SHA",
-      "file10-6_angular_error_results_SHA",
-      "file10-6_individual_bundle_results_SHA",
-      "file10-7_angular_error_results_SHA",
-      "file10-7_individual_bundle_results_SHA",
-      "file10-8_angular_error_results_SHA",
-      "file10-8_individual_bundle_results_SHA",
-      "file10-9_angular_error_results_SHA",
-      "file10-9_individual_bundle_results_SHA",
-      "file10-10_angular_error_results_SHA",
-      "file10-10_individual_bundle_results_SHA",
-      "file10-11_angular_error_results_SHA",
-      "file10-11_individual_bundle_results_SHA",
-      "file10-12_angular_error_results_SHA",
-      "file10-12_individual_bundle_results_SHA",
-      "file10-13_angular_error_results_SHA",
-      "file10-13_individual_bundle_results_SHA",
-      "file10-14_angular_error_results_SHA",
-      "file10-14_individual_bundle_results_SHA",
-      "file10-15_angular_error_results_SHA",
-      "file10-15_individual_bundle_results_SHA",
-      "file10-16_angular_error_results_SHA",
-      "file10-16_individual_bundle_results_SHA",
-      "file10-17_angular_error_results_SHA",
-      "file10-17_individual_bundle_results_SHA",
-      "file10-18_angular_error_results_SHA",
-      "file10-18_individual_bundle_results_SHA",
-      "file10-19_angular_error_results_SHA",
-      "file10-19_individual_bundle_results_SHA",
-      "file11-0_angular_error_results_SHA",
-      "file11-0_individual_bundle_results_SHA",
-      "file11-1_angular_error_results_SHA",
-      "file11-1_individual_bundle_results_SHA",
-      "file12-0_angular_error_results_SHA",
-      "file12-0_individual_bundle_results_SHA",
-      "file12-1_angular_error_results_SHA",
-      "file12-1_individual_bundle_results_SHA",
-      "file12-2_angular_error_results_SHA",
-      "file12-2_individual_bundle_results_SHA",
-      "file12-3_angular_error_results_SHA",
-      "file12-3_individual_bundle_results_SHA",
-      "file13-0_angular_error_results_SHA",
-      "file13-0_individual_bundle_results_SHA",
-      "file13-1_angular_error_results_SHA",
-      "file13-1_individual_bundle_results_SHA",
-      "file13-2_angular_error_results_SHA",
-      "file13-2_individual_bundle_results_SHA",
-      "file13-3_angular_error_results_SHA",
-      "file13-3_individual_bundle_results_SHA",
-      "file14-0_angular_error_results_SHA",
-      "file14-0_individual_bundle_results_SHA",
-      "file14-1_angular_error_results_SHA",
-      "file14-1_individual_bundle_results_SHA",
-      "file14-2_angular_error_results_SHA",
-      "file14-2_individual_bundle_results_SHA",
-      "file15-0_angular_error_results_SHA",
-      "file15-0_individual_bundle_results_SHA",
-      "file16-0_angular_error_results_SHA",
-      "file16-0_individual_bundle_results_SHA",
-      "file16-1_angular_error_results_SHA",
-      "file16-1_individual_bundle_results_SHA",
-      "file16-2_angular_error_results_SHA",
-      "file16-2_individual_bundle_results_SHA",
-      "file16-3_angular_error_results_SHA",
-      "file16-3_individual_bundle_results_SHA",
-      "file16-4_angular_error_results_SHA",
-      "file16-4_individual_bundle_results_SHA",
-      "file17-0_angular_error_results_SHA",
-      "file17-0_individual_bundle_results_SHA",
-      "file17-1_angular_error_results_SHA",
-      "file17-1_individual_bundle_results_SHA",
-      "file17-2_angular_error_results_SHA",
-      "file17-2_individual_bundle_results_SHA",
-      "file17-3_angular_error_results_SHA",
-      "file17-3_individual_bundle_results_SHA",
-      "file17-4_angular_error_results_SHA",
-      "file17-4_individual_bundle_results_SHA",
-      "file18-0_angular_error_results_SHA",
-      "file18-0_individual_bundle_results_SHA",
-      "file18-1_angular_error_results_SHA",
-      "file18-1_individual_bundle_results_SHA",
-      "file18-2_angular_error_results_SHA",
-      "file18-2_individual_bundle_results_SHA",
-      "file18-3_angular_error_results_SHA",
-      "file18-3_individual_bundle_results_SHA",
-      "file18-4_angular_error_results_SHA",
-      "file18-4_individual_bundle_results_SHA",
-      "file19-0_angular_error_results_SHA",
-      "file19-0_individual_bundle_results_SHA",
-      "file19-1_angular_error_results_SHA",
-      "file19-1_individual_bundle_results_SHA",
-      "file19-2_angular_error_results_SHA",
-      "file19-2_individual_bundle_results_SHA",
-      "file20-0_angular_error_results_SHA",
-      "file20-0_individual_bundle_results_SHA",
-      "file20-1_angular_error_results_SHA",
-      "file20-1_individual_bundle_results_SHA",
-      "file20-2_angular_error_results_SHA",
-      "file20-2_individual_bundle_results_SHA",
-      "file20-3_angular_error_results_SHA",
-      "file20-3_individual_bundle_results_SHA",
-      "file20-4_angular_error_results_SHA",
-      "file20-4_individual_bundle_results_SHA",
-      "file20-5_angular_error_results_SHA",
-      "file20-5_individual_bundle_results_SHA",
-      "file20-6_angular_error_results_SHA",
-      "file20-6_individual_bundle_results_SHA",
-      "file20-7_angular_error_results_SHA",
-      "file20-7_individual_bundle_results_SHA",
-      "file20-8_angular_error_results_SHA",
-      "file20-8_individual_bundle_results_SHA",
-      "file20-9_angular_error_results_SHA",
-      "file20-9_individual_bundle_results_SHA",
-      "file20-10_angular_error_results_SHA",
-      "file20-10_individual_bundle_results_SHA",
-      "file20-11_angular_error_results_SHA",
-      "file20-11_individual_bundle_results_SHA",
-      "file20-12_angular_error_results_SHA",
-      "file20-12_individual_bundle_results_SHA",
-      "file20-13_angular_error_results_SHA",
-      "file20-13_individual_bundle_results_SHA",
-      "file20-14_angular_error_results_SHA",
-      "file20-14_individual_bundle_results_SHA"],
-    data_size="12KB",
+        tractodata_home, "datasets", "ismrm2015", "derivatives", "submission",
+        "synth", "sub-02", "dwi"),
+    TRACTODATA_DATASETS_URL + "t4m9a/",
+    ["download"],
+    ["sub02-dwi_space-orig_desc-synth_submission_results_tractography.zip"],
+    ["6f27a599ac4977a5a91f9111c1726665"],
+    data_size="116.8KB",
     doc="Download ISMRM 2015 Tractography Challenge submission result data",
     unzip=True
     )
@@ -1307,6 +742,11 @@ def get_fnames(name):
         files, folder = fetch_ismrm2015_bundle_endpoint_masks()
         fnames = files[
             'sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.ISMRM2015_CHALLENGE_SUBMISSION.name:
+        files, folder = fetch_ismrm2015_submission_res()
+        fnames = files[
+            'sub02-dwi_space-orig_desc-synth_submission_results_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
     else:
         raise DatasetError(_unknown_dataset_msg(name))
@@ -1677,3 +1117,196 @@ def read_dataset_bundle_endpoint_masks(
         bundle_endpoint_masks[key] = nib.load(fname)
 
     return bundle_endpoint_masks
+
+
+def _get_ismrm2015_submission_id_from_filenames(fnames):
+
+    label = []
+    for f in fnames:
+        label.append(os.path.splitext(os.path.basename(f))[0])
+
+    # Assume that the filenames have two common substrings, and that the
+    # submission id is embedded in between
+    common_subseq = get_longest_common_subseq(label)
+    label = list(map(lambda st: str.replace(st, common_subseq, ""), label))
+    common_subseq = get_longest_common_subseq(label)
+    label = list(map(lambda st: str.replace(st, common_subseq, ""), label))
+
+    return label
+
+
+def _classify_ismrm2015_submissions_results_files():
+    """Classify the ISMRM 2015 Tractography Challenge submission result files.
+
+    Returns
+    -------
+    overall_scores_fname : string
+        Overall performance filename.
+    angular_error_score_fnames : list
+        Angular performance data filenames
+    bundle_score_fnames : list
+         Bundle performance filenames.
+    """
+
+    fnames = get_fnames(Dataset.ISMRM2015_CHALLENGE_SUBMISSION.name)
+
+    overall_scores_fname = [
+        f for f in fnames
+        if ismrm2015_submission_overall_filename_label in
+        os.path.splitext(os.path.basename(f))[0]][0]
+
+    angular_error_score_fnames = [
+        f for f in fnames
+        if ismrm2015_submission_angular_error_filename_label in
+        os.path.splitext(os.path.basename(f))[0]]
+    bundle_score_fnames = [
+        f for f in fnames
+        if ismrm2015_submission_individual_bundle_filename_label in
+        os.path.splitext(os.path.basename(f))[0]]
+
+    return overall_scores_fname, angular_error_score_fnames, \
+        bundle_score_fnames
+
+
+def read_ismrm2015_submissions_overall_performance_data(score=None):
+    """Read ISMRM 2015 Tractography Challenge submission overall performance
+    data.
+
+    Parameters
+    ----------
+    score : list
+        Scores whose data is to be retrieved. If `None` all score data will be
+        read.
+
+    Returns
+    -------
+    df : pd.DataFrame
+        The overall performance data.
+    """
+
+    # Get the relevant file
+    fname, _, _ = _classify_ismrm2015_submissions_results_files()
+
+    # Keep the submission id column
+    usecols = None
+    if score:
+        usecols = [ismrm2015_submission_data_submission_id_label] + score
+
+    df = pd.read_csv(fname, usecols=usecols)
+    df.set_index(ismrm2015_submission_data_submission_id_label, inplace=True)
+
+    return df
+
+
+def read_ismrm2015_submissions_angular_performance_data(
+        score=None, roi=None):
+    """Read ISMRM 2015 Tractography Challenge submission angular performance
+    data.
+
+    Parameters
+    ----------
+    score : list
+        Scores whose data is to be retrieved. If `None`, all score data will be
+        read.
+    roi : list
+        ROIs whose data is to be retrieved. If `None`, all ROI data will be
+        read.
+
+    Returns
+    -------
+    df : pd.DataFrame
+        The angular performance data.
+    """
+
+    # Get the relevant files
+    _, fnames, _ = _classify_ismrm2015_submissions_results_files()
+
+    scores = []
+    register_count = []
+    for f in fnames:
+        # Keep the ROI column
+        usecols = None
+        if score:
+            usecols = [ismrm2015_submission_data_roi_label] + score
+
+        df = pd.read_csv(f, usecols=usecols)
+        register_count.append(len(df.index))
+        scores.append(df)
+
+    # Create the df with all data
+    df = pd.concat(scores, ignore_index=True)
+
+    # Get the submission id to use it as an index together with the bundle
+    # names
+    submission_id = _get_ismrm2015_submission_id_from_filenames(fnames)
+    submission_id = [
+        [_id] * count for _id, count in zip(submission_id, register_count)]
+    submission_id = list(itertools.chain.from_iterable(submission_id))
+    df[ismrm2015_submission_data_submission_id_label] = submission_id
+
+    df.set_index(
+        [ismrm2015_submission_data_submission_id_label,
+         ismrm2015_submission_data_roi_label], inplace=True)
+
+    # Filter the df if ROIs were given
+    if roi:
+        df = df[df.index.isin(roi, level=1)]
+
+    return df
+
+
+def read_ismrm2015_submissions_bundle_performance_data(
+        score=None, bundle_name=None):
+    """Read ISMRM 2015 Tractography Challenge submission bundle performance
+    data.
+
+    Parameters
+    ----------
+    score : list
+        Scores whose data is to be retrieved. If `None`, all score data will be
+        read.
+    bundle_name : list
+        Bundle names whose data is to be retrieved. If `None`, all bundle data
+        will be read.
+
+    Returns
+    -------
+    df : pd.DataFrame
+        The bundle performance data.
+    """
+
+    # Get the relevant files
+    _, _, fnames = _classify_ismrm2015_submissions_results_files()
+
+    scores = []
+    register_count = []
+    for f in fnames:
+        # Keep the bundle column
+        usecols = None
+        if score:
+            usecols = [ismrm2015_submission_data_bundle_label] + score
+
+        df = pd.read_csv(f, usecols=usecols)
+        register_count.append(len(df.index))
+        scores.append(df)
+
+    # Create the df with all data
+    df = pd.concat(scores, ignore_index=True)
+
+    # Get the submission id to use it as an index together with the bundle
+    # names
+    submission_id = _get_ismrm2015_submission_id_from_filenames(fnames)
+    submission_id = [
+        [_id] * count for _id, count in zip(submission_id, register_count)]
+    submission_id = list(itertools.chain.from_iterable(submission_id))
+    df[ismrm2015_submission_data_submission_id_label] = submission_id
+
+    df.set_index(
+        [ismrm2015_submission_data_submission_id_label,
+         ismrm2015_submission_data_bundle_label], inplace=True)
+
+    # Filter the df if bundle names were given
+    if bundle_name:
+        df = df[df.index.isin(bundle_name, level=1)]
+
+    return df

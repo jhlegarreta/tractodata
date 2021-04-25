@@ -1,6 +1,7 @@
 dipy
 numpy
 nibabel
+pandas
 pytest==5.3.*
 pytest-cov
 pytest-xdist
