@@ -24,11 +24,16 @@ from tractodata.data import TEST_FILES
 import tractodata.io.fetcher as fetcher
 
 from tractodata.io.fetcher import TRACTODATA_DATASETS_URL, Dataset
-from tractodata.io.utils import Endpoint, Tissue
+from tractodata.io.utils import Endpoint, Hemisphere, Tissue
 
 fibercup_bundles = ["bundle1", "bundle2", "bundle3", "bundle4", "bundle5",
                     "bundle6", "bundle7"]
 fibercup_tissues = [Tissue.WM.value]
+ismrm2015_association_bundles = ["Cing", "FPT", "ICP", "ILF", "OR", "POPT",
+                                 "SCP", "SLF", "UF"]
+ismrm2015_projection_bundles = ["CST"]
+ismrm2015_commissural_bundles = ["CC", "CA", "CP", "Fornix", "MCP"]
+ismrm2015_tissues = [Tissue.WM.value]
 
 
 def _build_fibercup_bundle_endpoints():
@@ -38,12 +43,34 @@ def _build_fibercup_bundle_endpoints():
             fibercup_bundles, [Endpoint.HEAD.value, Endpoint.TAIL.value]))
 
 
+def _build_ismrm2015_bundles():
+
+    assoc_val = list(itertools.product(
+        ismrm2015_association_bundles,
+        [Hemisphere.LEFT.value, Hemisphere.RIGHT.value]))
+
+    proj_val = itertools.product(
+        ismrm2015_projection_bundles,
+        [Hemisphere.LEFT.value, Hemisphere.RIGHT.value])
+
+    return list(itertools.chain.from_iterable(
+        [assoc_val, ismrm2015_commissural_bundles, proj_val]))
+
+
 def _check_fibercup_img(img):
 
     npt.assert_equal(
         img.__class__.__name__, nib.Nifti1Image.__name__)
     npt.assert_equal(img.get_fdata().dtype, np.float64)
     npt.assert_equal(img.get_fdata().shape, (64, 64, 3))
+
+
+def _check_ismrm2015_img(img):
+
+    npt.assert_equal(
+        img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(img.get_fdata().dtype, np.float64)
+    npt.assert_equal(img.get_fdata().shape, (180, 216, 180))
 
 
 def test_check_hash():
@@ -299,6 +326,32 @@ def test_list_fibercup_tissue_maps():
     assert expected_val == obtained_val
 
 
+def test_list_ismrm2015_bundles():
+
+    bundle_names = fetcher.list_bundles_in_dataset(
+        Dataset.ISMRM2015_SYNTH_BUNDLING.name)
+
+    expected_val = 25
+    obtained_val = len(bundle_names)
+    assert expected_val == obtained_val
+
+    _expected_val = _build_ismrm2015_bundles()
+
+    expected_val = []
+    for elem in _expected_val:
+        if isinstance(elem, str):
+            _name = fetcher._build_bundle_key(elem)
+        else:
+            _name = fetcher._build_bundle_key(elem[0], hemisphere=elem[1])
+
+        expected_val.append(_name)
+
+    expected_val = sorted(expected_val)
+    obtained_val = sorted(bundle_names)
+
+    npt.assert_equal(expected_val, obtained_val)
+
+
 def test_read_fibercup_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.FIBERCUP_ANAT.name)
@@ -499,3 +552,151 @@ def test_read_fibercup_bundle_endpoint_masks():
         mask_endpoint_img = bundle_endpoint_masks[_name]
 
         _check_fibercup_img(mask_endpoint_img)
+
+
+def test_read_ismrm2015_anat():
+
+    anat_img = fetcher.read_dataset_anat(Dataset.ISMRM2015_ANAT.name)
+
+    _check_ismrm2015_img(anat_img)
+
+
+def test_read_ismrm2015_dwi():
+
+    dwi_img, gtab = fetcher.read_dataset_dwi(Dataset.ISMRM2015_DWI.name)
+
+    npt.assert_equal(dwi_img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(dwi_img.get_fdata().dtype, np.float64)
+    npt.assert_equal(dwi_img.get_fdata().shape, (90, 108, 90, 33))
+
+    expected_val = 33
+    obtained_val = len(gtab.bvals)
+
+    assert expected_val == obtained_val
+
+    expected_val = (0, 1000)
+
+    assert np.logical_and(
+        gtab.bvals >= expected_val[0], gtab.bvals <= expected_val[-1]).all()
+
+    expected_val = 33
+    obtained_val = len(gtab.bvecs)
+
+    assert expected_val == obtained_val
+
+
+def test_read_ismrm2015_synth_tracking():
+
+    sft = fetcher.read_dataset_tracking(
+        Dataset.ISMRM2015_ANAT.name, Dataset.ISMRM2015_SYNTH_TRACKING.name)
+
+    npt.assert_equal(sft.__class__.__name__, StatefulTractogram.__name__)
+
+    expected_val = 200433
+    obtained_val = len(sft)
+
+    assert expected_val == obtained_val
+
+
+def test_read_ismrm2015_synth_bundling():
+
+    anat_name = Dataset.ISMRM2015_ANAT.name
+    bundling_name = Dataset.ISMRM2015_SYNTH_BUNDLING.name
+
+    bundles = fetcher.read_dataset_bundling(anat_name, bundling_name)
+
+    expected_val = 25
+    obtained_val = len(bundles)
+
+    assert expected_val == obtained_val
+
+    npt.assert_equal(
+        bundles["CC"].__class__.__name__, StatefulTractogram.__name__)
+
+    expected_val = 17993
+    obtained_val = len(bundles["CC"])
+    assert expected_val == obtained_val
+
+    bundle_name = ["CST"]
+    hemisphere_name = "L"
+    bundles = fetcher.read_dataset_bundling(
+        anat_name, bundling_name, bundle_name=bundle_name,
+        hemisphere_name=hemisphere_name)
+
+    _name = fetcher._build_bundle_key(
+        bundle_name[0], hemisphere=hemisphere_name)
+
+    expected_val = 7217
+    obtained_val = len(bundles[_name])
+    assert expected_val == obtained_val
+
+    bundle_name = ["CST"]
+    bundles = fetcher.read_dataset_bundling(
+        anat_name, bundling_name, bundle_name=bundle_name)
+
+    _name = fetcher._build_bundle_key(
+        bundle_name[0], hemisphere=Hemisphere.LEFT.value)
+
+    expected_val = 7217
+    obtained_val = len(bundles[_name])
+    assert expected_val == obtained_val
+
+    _name = fetcher._build_bundle_key(
+        bundle_name[0], hemisphere=Hemisphere.RIGHT.value)
+
+    expected_val = 10232
+    obtained_val = len(bundles[_name])
+    assert expected_val == obtained_val
+
+    bundle_name = ["CC", "Fornix"]
+    bundles = fetcher.read_dataset_bundling(
+        anat_name, bundling_name, bundle_name=bundle_name)
+
+    expected_val = 17993
+    obtained_val = len(bundles[bundle_name[0]])
+    assert expected_val == obtained_val
+
+    expected_val = 3831
+    obtained_val = len(bundles[bundle_name[-1]])
+    assert expected_val == obtained_val
+
+    bundle_name = ["CA", "Cing"]
+    bundles = fetcher.read_dataset_bundling(
+        anat_name, bundling_name, bundle_name=bundle_name)
+
+    expected_val = 431
+    obtained_val = len(bundles[bundle_name[0]])
+    assert expected_val == obtained_val
+
+    _name = fetcher._build_bundle_key(
+        bundle_name[-1], hemisphere=Hemisphere.LEFT.value)
+
+    expected_val = 14343
+    obtained_val = len(bundles[_name])
+    assert expected_val == obtained_val
+
+    _name = fetcher._build_bundle_key(
+        bundle_name[-1], hemisphere=Hemisphere.RIGHT.value)
+
+    expected_val = 20807
+    obtained_val = len(bundles[_name])
+    assert expected_val == obtained_val
+
+    bundle_name = ["MCP", "SLF"]
+    hemisphere_name = "L"
+    bundles = fetcher.read_dataset_bundling(
+        anat_name, bundling_name, bundle_name=bundle_name,
+        hemisphere_name=hemisphere_name)
+
+    assert bundle_name[0] not in bundles.keys()
+
+    expected_val = 1
+    obtained_val = len(bundles)
+    assert expected_val == obtained_val
+
+    _name = fetcher._build_bundle_key(
+        bundle_name[-1], hemisphere=hemisphere_name)
+
+    expected_val = 12497
+    obtained_val = len(bundles[_name])
+    assert expected_val == obtained_val
