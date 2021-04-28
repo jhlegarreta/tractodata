@@ -1,6 +1,7 @@
 # tractodata
 
-[![Build Status](https://github.com/jhlegarreta/tractodata/workflows/test,%20package/badge.svg)](https://github.com/jhlegarreta/tractodata/actions?query=workflow%3A%22test%2C+package%22+branch%3Amaster)
+
+[![Build Status](https://github.com/jhlegarreta/tractodata/workflows/test,%20package/badge.svg)](https://github.com/jhlegarreta/tractodata/actions?query=workflow%3A%22test%2C+package%22+branch%3Amain)
 
 Tractography data.
 
