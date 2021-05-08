@@ -932,3 +932,184 @@ def test_read_ismrm2015_bundle_endpoint_masks():
         mask_endpoint_img = bundle_endpoint_masks[_name]
 
         _check_ismrm2015_img(mask_endpoint_img)
+
+
+def test_get_ismrm2015_submission_id_from_filenames():
+
+    fnames = [
+        "/path/to/ismrm2015_tractography_challenge_submission1-0_angular_error_results.csv",  # noqa E501
+        "/path/to/ismrm2015_tractography_challenge_submission1-1_angular_error_results.csv",  # noqa E501
+        "/path/to/ismrm2015_tractography_challenge_submission1-2_angular_error_results.csv",  # noqa E501
+        "/path/to/ismrm2015_tractography_challenge_submission2-1_angular_error_results.csv"]  # noqa E501
+    expected_val = ["1-0", "1-1", "1-2", "2-1"]
+    obtained_val = fetcher._get_ismrm2015_submission_id_from_filenames(fnames)
+
+    assert expected_val == obtained_val
+
+
+def test_classify_ismrm2015_submissions_results_files():
+
+    overall_scores_fname, angular_error_score_fnames, bundle_score_fnames = \
+        fetcher._classify_ismrm2015_submissions_results_files()
+
+    expected_val = pjoin(
+        fetcher.tractodata_home, "datasets", "ismrm2015", "derivatives",
+        "submission", "synth", "sub-02", "dwi",
+        "ismrm2015_tractography_challenge_overall_results.csv")
+    obtained_val = overall_scores_fname
+
+    assert expected_val == obtained_val
+
+    expected_val = 96
+    obtained_val = len(angular_error_score_fnames)
+
+    assert expected_val == obtained_val
+
+    expected_val = 96
+    obtained_val = len(bundle_score_fnames)
+
+    assert expected_val == obtained_val
+
+
+def test_read_ismrm2015_submissions_overall_performance_data():
+
+    df = fetcher.read_ismrm2015_submissions_overall_performance_data()
+
+    expected_val = 96
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = 6
+    obtained_val = len(df.columns)
+
+    assert expected_val == obtained_val
+
+    score = ["IB"]
+    df = fetcher.read_ismrm2015_submissions_overall_performance_data(
+        score=score)
+
+    expected_val = 96
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = score
+    obtained_val = df.columns.to_list()
+
+    assert expected_val == obtained_val
+
+
+def test_read_ismrm2015_submissions_angular_performance_data():
+
+    df = fetcher.read_ismrm2015_submissions_angular_performance_data()
+
+    expected_val = 96*3
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = 5
+    obtained_val = len(df.columns)
+
+    assert expected_val == obtained_val
+
+    score = ["Median"]
+    df = fetcher.read_ismrm2015_submissions_angular_performance_data(
+        score=score)
+
+    expected_val = 96*3
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = score
+    obtained_val = df.columns.to_list()
+
+    assert expected_val == obtained_val
+
+    roi = ["Voxels with crossing fibers"]
+    df = fetcher.read_ismrm2015_submissions_angular_performance_data(roi=roi)
+
+    expected_val = 96
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = 5
+    obtained_val = len(df.columns)
+
+    assert expected_val == obtained_val
+
+    score = ["Standard deviation"]
+    roi = ["Voxels with single fiber population"]
+    df = fetcher.read_ismrm2015_submissions_angular_performance_data(
+        score=score, roi=roi)
+
+    expected_val = 96
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = score
+    obtained_val = df.columns.to_list()
+
+    assert expected_val == obtained_val
+
+
+def test_read_ismrm2015_submissions_bundle_performance_data():
+
+    df = fetcher.read_ismrm2015_submissions_bundle_performance_data()
+
+    expected_val = 96*25
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = 4
+    obtained_val = len(df.columns)
+
+    assert expected_val == obtained_val
+
+    score = ["Overlap (% of GT)"]
+    df = fetcher.read_ismrm2015_submissions_bundle_performance_data(
+        score=score)
+
+    expected_val = 96*25
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = score
+    obtained_val = df.columns.to_list()
+
+    assert expected_val == obtained_val
+
+    bundle_name = ["Cingulum (right)"]
+    df = fetcher.read_ismrm2015_submissions_bundle_performance_data(
+        bundle_name=bundle_name)
+
+    expected_val = 96
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = 4
+    obtained_val = len(df.columns)
+
+    assert expected_val == obtained_val
+
+    score = ["Count"]
+    bundle_name = ["Uncinate Fasciculus (right)"]
+    df = fetcher.read_ismrm2015_submissions_bundle_performance_data(
+        score=score, bundle_name=bundle_name)
+
+    expected_val = 96
+    obtained_val = len(df.index)
+
+    assert expected_val == obtained_val
+
+    expected_val = score
+    obtained_val = df.columns.to_list()
+
+    assert expected_val == obtained_val

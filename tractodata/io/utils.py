@@ -232,3 +232,96 @@ def filter_filenames_on_value(fnames, label, value):
         fname_shortlist.extend(shortlist)
 
     return fname_shortlist
+
+
+def is_subseq(possible_subseq, seq):
+    """Determine whether the candidate string in a subsequence in the sequence.
+
+    Parameters
+    ----------
+    possible_subseq : string
+        Candidate string to be retrieved.
+    seq : string
+        Sequence where the candidate string is to be retrieved.
+
+    Returns
+    -------
+    `True` if the candidate string is contained in the data; `False` otherwise.
+    """
+
+    def _get_length_n_slices(n):
+        for i in range(len(seq) + 1 - n):
+            yield seq[i:i+n]
+
+    # Will also return True if possible_subseq == seq
+    if len(possible_subseq) > len(seq):
+        return False
+
+    for slc in _get_length_n_slices(len(possible_subseq)):
+        if slc == possible_subseq:
+            return True
+
+    return False
+
+
+def is_subseq_of_any(find, data):
+    """Determine whether the candidate string in a subsequence in all data
+    elements.
+
+    Parameters
+    ----------
+    find : string
+        Candidate string to be retrieved.
+    data : list
+        Strings from which the longest common subsequence needs to be
+        retrieved.
+
+    Returns
+    -------
+    `True` if the candidate string is contained in all data elements; `False`
+    otherwise.
+    """
+
+    if len(data) < 1 and len(find) < 1:
+        return False
+    for i in range(len(data)):
+        if not is_subseq(find, data[i]):
+            return False
+
+    return True
+
+
+# ToDo
+# These seem to have O(M*N) and apparently there are more efficient solutions
+# using suffix trees (O(m+n)) or similar implementations (note that this may
+# require # substrings other than a suffix) or difflib.
+# Further references:
+# https://stackoverflow.com/questions/40556491/how-to-find-the-longest-common-substring-of-multiple-strings
+# https://stackoverflow.com/questions/18715688/find-common-substring-between-two-strings
+# or else, os.path.commonprefix
+#
+def get_longest_common_subseq(data):
+    """Get longest common subsequence (starting from the beginning) across the
+    given data.
+
+    Parameters
+    ----------
+    data : list
+        Strings from which the longest common subsequence needs to be
+        retrieved.
+
+    Returns
+    -------
+    substr : string
+        The retrieved longest common subsequence.
+    """
+
+    substr = []
+
+    if len(data) > 1 and len(data[0]) > 0:
+        for i in range(len(data[0])):
+            for j in range(len(data[0])-i+1):
+                if j > len(substr) and is_subseq_of_any(data[0][i:i+j], data):
+                    substr = data[0][i:i+j]
+
+    return substr
