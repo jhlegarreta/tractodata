@@ -478,10 +478,10 @@ fetch_fibercup_bundle_endpoint_masks = _make_fetcher(
     pjoin(
         tractodata_home, "datasets", "fibercup", "derivatives", "connectivity",
         "synth", "sub-01", "anat"),
-    TRACTODATA_DATASETS_URL + "ytjx7/",
+    TRACTODATA_DATASETS_URL + "y7b2r/",
     ["download"],
     ["sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip"],  # noqa E501
-    ["5c04828968edefbefa4bf5a7a40ca5b4"],
+    ["ad8efab1c4743aa83df242c77b61c102"],
     data_size="6.6KB",
     doc="Download Fiber Cup dataset synthetic bundle endpoint masks",
     unzip=True
