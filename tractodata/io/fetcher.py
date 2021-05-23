@@ -27,6 +27,8 @@ from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.streamline import load_tractogram
 # from dipy.tracking.streamline import Streamlines
 
+import trimeshpy
+
 from tractodata.io.utils import \
     (Label, get_label_value_from_filename, get_longest_common_subseq,
      filter_filenames_on_value)
@@ -66,6 +68,7 @@ class Dataset(enum.Enum):
     ISMRM2015_ANAT = "ismrm2015_anat"
     ISMRM2015_DWI = "ismrm2015_dwi"
     ISMRM2015_TISSUE_MAPS = "ismrm2015_tissue_maps"
+    ISMRM2015_SURFACES = "ismrm2015_surfaces"
     ISMRM2015_SYNTH_TRACKING = "ismrm2015_synth_tracking"
     ISMRM2015_SYNTH_BUNDLING = "ismrm2015_synth_bundling"
     ISMRM2015_BUNDLE_MASKS = "ismrm2015_bundle_masks"
@@ -129,6 +132,30 @@ def _build_bundle_endpoint_key(bundle_name, endpoint, hemisphere=None):
         key += key_separator + hemisphere
 
     key += key_separator + endpoint
+
+    return key
+
+
+def _build_surface_key(surface_type, hemisphere=None):
+    """Build the key for the given surface: append the hemisphere (if any) with
+    a separator.
+
+    Parameters
+    ----------
+    surface_type : string
+        Surface type.
+    hemisphere : string, optional
+        Hemisphere.
+
+    Returns
+    ----------
+    key : string
+        Key value.
+    """
+
+    key = surface_type
+    if hemisphere:
+        key += key_separator + hemisphere
 
     return key
 
@@ -571,6 +598,19 @@ fetch_ismrm2015_tissue_maps = _make_fetcher(
     unzip=False
     )
 
+fetch_ismrm2015_surfaces = _make_fetcher(
+    "fetch_ismrm2015_surfaces",
+    pjoin(tractodata_home, "datasets", "ismrm2015", "derivatives", "surface",
+          "fastsurfer", "sub-01", "anat"),
+    TRACTODATA_DATASETS_URL + "yb6d2/",
+    ["download"],
+    ["sub01-T1w_space-orig_pial.surf.zip"],
+    ["33ea5dcd1e863eb4dc8c3063bf3d89fd"],
+    data_size="3.7MB",
+    doc="Download ISMRM 2015 Tractography Challenge dataset surface data",
+    unzip=True
+    )
+
 fetch_ismrm2015_synth_tracking = _make_fetcher(
     "fetch_ismrm2015_synth_tracking",
     pjoin(
@@ -725,6 +765,10 @@ def get_fnames(name):
     elif name == Dataset.ISMRM2015_TISSUE_MAPS.name:
         files, folder = fetch_ismrm2015_tissue_maps()
         return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.ISMRM2015_SURFACES.name:
+        files, folder = fetch_ismrm2015_surfaces()
+        fnames = files['sub01-T1w_space-orig_pial.surf.zip'][2]
+        return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISMRM2015_SYNTH_TRACKING.name:
         files, folder = fetch_ismrm2015_synth_tracking()
         return pjoin(folder, list(files.keys())[0])
@@ -844,6 +888,41 @@ def list_tissue_maps_in_dataset(name):
     return tissue_names
 
 
+def list_surfaces_in_dataset(name):
+    """List dataset surface names.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    surface_names : list
+        Surface names.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    surface_names = []
+
+    has_period = True
+
+    for fname in fnames:
+        surface_type = get_label_value_from_filename(
+            fname, Label.SURFACE, has_period)
+        hemisphere = get_label_value_from_filename(
+            fname, Label.HEMISPHERE, has_period)
+
+        surface_name = _build_surface_key(surface_type, hemisphere=hemisphere)
+
+        surface_names.append(surface_name)
+
+    return surface_names
+
+
 def read_dataset_anat(name):
     """Load dataset anatomy data.
 
@@ -917,6 +996,64 @@ def read_dataset_tissue_maps(name):  # , tissue_names=None):
     tissue_maps = dict({tissue_name: nib.load(fname)})
 
     return tissue_maps
+
+
+def read_dataset_surfaces(
+        name, surface_type=None, hemisphere_name=None, as_polydata=False):
+    """Load dataset surfaces.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+    surface_type : string, optional
+        e.g., ["pial"] for the gray matter/pial matter border. If `None` all
+        will be loaded.
+    hemisphere_name : string, optional
+        e.g., ["L", "R"] for left or right hemispheres. If `None` all will be
+        loaded.
+    as_polydata : bool, optional
+        `True` if surfaces are to be loaded as VTK PolyData objects;
+         `trimeshpy.TriMesh_Vtk` objects are returned otherwise.
+
+    Returns
+    -------
+    Surface meshes.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    surfaces = dict()
+
+    fnames_shortlist = fnames
+
+    if hemisphere_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames_shortlist, Label.HEMISPHERE, hemisphere_name)
+
+    if surface_type:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames_shortlist, Label.SURFACE, surface_type)
+
+    has_period = True
+
+    for fname in fnames_shortlist:
+        _surface_type = get_label_value_from_filename(
+            fname, Label.SURFACE, has_period=has_period)
+        _hemisphere_name = get_label_value_from_filename(
+            fname, Label.HEMISPHERE, has_period=has_period)
+
+        key = _build_surface_key(_surface_type, hemisphere=_hemisphere_name)
+
+        if as_polydata:
+            surfaces[key] = trimeshpy.vtk_util.load_polydata(fname)
+        else:
+            surfaces[key] = trimeshpy.TriMesh_Vtk(
+                fname, None, assert_args=False)
+
+    return surfaces
 
 
 def read_dataset_tracking(
