@@ -672,6 +672,19 @@ def test_read_fibercup_diffusion_peaks():
     assert expected_val == obtained_val
 
 
+def test_read_fibercup_local_prob_tracking():
+
+    sft = fetcher.read_dataset_tracking(
+        Dataset.FIBERCUP_ANAT.name, Dataset.FIBERCUP_LOCAL_PROB_TRACKING.name)
+
+    npt.assert_equal(sft.__class__.__name__, StatefulTractogram.__name__)
+
+    expected_val = 5186
+    obtained_val = len(sft)
+
+    assert expected_val == obtained_val
+
+
 def test_read_ismrm2015_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.ISMRM2015_ANAT.name)
