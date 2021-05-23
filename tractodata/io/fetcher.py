@@ -62,6 +62,7 @@ class Dataset(enum.Enum):
     FIBERCUP_SYNTH_BUNDLING = "fibercup_synth_bundling"
     FIBERCUP_BUNDLE_MASKS = "fibercup_bundle_masks"
     FIBERCUP_BUNDLE_ENDPOINT_MASKS = "fibercup_bundle_endpoint_masks"
+    FIBERCUP_DIFFUSION_PEAKS = "fibercup_diffusion_peaks"
     # ISBI2013_ANAT = "isbi2013_anat"
     # ISBI2013_DWI = "isbi2013_dwi"
     # ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
@@ -514,6 +515,20 @@ fetch_fibercup_bundle_endpoint_masks = _make_fetcher(
     unzip=True
     )
 
+fetch_fibercup_diffusion_peaks = _make_fetcher(
+    "fetch_fibercup_diffusion_peaks",
+    pjoin(
+        tractodata_home, "datasets", "fibercup", "derivatives",
+        "diffusion_peaks", "dipy_csd", "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "ezqa3/",
+    ["download"],
+    ["sub01-dwi_space-orig_model-CSD_PEAKS.nii.gz"],
+    ["1914dc2c9c26efaf181058f5b4f9480c"],
+    data_size="48KB",
+    doc="Download Fiber Cup dataset diffusion model peaks",
+    unzip=False
+    )
+
 fetch_isbi2013_anat = _make_fetcher(
     "fetch_isbi2013_anat",
     pjoin(tractodata_home, "datasets", "isbi2013", "raw", "sub-01", "anat"),
@@ -741,6 +756,9 @@ def get_fnames(name):
         fnames = files[
             'sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.FIBERCUP_DIFFUSION_PEAKS.name:
+        files, folder = fetch_fibercup_diffusion_peaks()
+        return pjoin(folder, list(files.keys())[0])
     # elif name == Dataset.ISBI2013_ANAT.name:
     #   files, folder = fetch_isbi2013_anat()
     #   return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
@@ -1254,6 +1272,27 @@ def read_dataset_bundle_endpoint_masks(
         bundle_endpoint_masks[key] = nib.load(fname)
 
     return bundle_endpoint_masks
+
+
+def read_dataset_diffusion_peaks(name):
+    """Load dataset diffusion peak data.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    img : Nifti1Image
+        Diffusion peaks image.
+    """
+
+    _check_known_dataset(name)
+
+    fname = get_fnames(name)
+
+    return nib.load(fname)
 
 
 def _get_ismrm2015_submission_id_from_filenames(fnames):
