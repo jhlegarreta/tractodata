@@ -838,7 +838,7 @@ def list_bundle_endpoint_masks_in_dataset(name):
     Returns
     -------
     bundle_endpoints : list
-        Bundle endpoint_names.
+        Bundle endpoint names.
     """
 
     _check_known_dataset(name)
@@ -876,8 +876,8 @@ def list_tissue_maps_in_dataset(name):
 
     _check_known_dataset(name)
 
-    # For the current datasets, there only existing tissue map is the WM, so
-    # the get_fnames method returns a single filename
+    # For the current datasets, the only existing tissue map is the WM, so the
+    # get_fnames method returns a single filename
     fname = get_fnames(name)
 
     tissue_names = []
@@ -987,8 +987,8 @@ def read_dataset_tissue_maps(name):  # , tissue_names=None):
 
     _check_known_dataset(name)
 
-    # For the current datasets, there only existing tissue map is the WM, so
-    # the get_fnames method returns a single filename
+    # For the current datasets, the only existing tissue map is the WM, so the
+    # get_fnames method returns a single filename
     fname = get_fnames(name)
 
     tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
