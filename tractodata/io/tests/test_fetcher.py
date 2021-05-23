@@ -685,6 +685,20 @@ def test_read_fibercup_local_prob_tracking():
     assert expected_val == obtained_val
 
 
+def test_read_fibercup_local_prob_bundling():
+
+    bundles = fetcher.read_dataset_bundling(
+        Dataset.FIBERCUP_ANAT.name, Dataset.FIBERCUP_LOCAL_PROB_BUNDLING.name)
+
+    expected_val = 1
+    obtained_val = len(bundles)
+    assert expected_val == obtained_val
+
+    expected_val = 759
+    obtained_val = len(bundles["bundle3"])
+    assert expected_val == obtained_val
+
+
 def test_read_ismrm2015_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.ISMRM2015_ANAT.name)
