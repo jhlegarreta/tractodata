@@ -20,11 +20,13 @@ from importlib import reload
 from dipy.io.streamline import StatefulTractogram
 from nibabel.tmpdirs import TemporaryDirectory
 
+from trimeshpy import vtk_util as vtk_u
+
 from tractodata.data import TEST_FILES
 import tractodata.io.fetcher as fetcher
 
 from tractodata.io.fetcher import TRACTODATA_DATASETS_URL, Dataset
-from tractodata.io.utils import Endpoint, Hemisphere, Tissue
+from tractodata.io.utils import Endpoint, Hemisphere, Surface, Tissue
 
 fibercup_bundles = ["bundle1", "bundle2", "bundle3", "bundle4", "bundle5",
                     "bundle6", "bundle7"]
@@ -34,6 +36,7 @@ ismrm2015_association_bundles = ["Cing", "FPT", "ICP", "ILF", "OR", "POPT",
 ismrm2015_projection_bundles = ["CST"]
 ismrm2015_commissural_bundles = ["CC", "CA", "CP", "Fornix", "MCP"]
 ismrm2015_tissues = [Tissue.WM.value]
+ismrm2015_surfaces = [Surface.PIAL.value]
 
 
 def _build_fibercup_bundle_endpoints():
@@ -75,6 +78,14 @@ def _build_ismrm2015_bundle_endpoints():
 
     return list(itertools.chain.from_iterable(
         [assoc_val, commiss_val, proj_val]))
+
+
+def _build_ismrm2015_surfaces():
+
+    return list(
+        itertools.product(
+            ismrm2015_surfaces,
+            [Hemisphere.LEFT.value, Hemisphere.RIGHT.value]))
 
 
 def _check_fibercup_img(img):
@@ -435,6 +446,19 @@ def test_list_ismrm2015_tissue_maps():
     assert expected_val == obtained_val
 
 
+def test_list_ismrm2015_surfaces():
+
+    surface_names = fetcher.list_surfaces_in_dataset(
+        Dataset.ISMRM2015_SURFACES.name)
+
+    expected_val = _build_ismrm2015_surfaces()
+    expected_val = [fetcher._build_surface_key(elem[0], elem[1])
+                    for elem in expected_val]
+    obtained_val = surface_names
+
+    assert expected_val == obtained_val
+
+
 def test_read_fibercup_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.FIBERCUP_ANAT.name)
@@ -674,6 +698,82 @@ def test_read_ismrm2015_tissue_maps():
         Dataset.ISMRM2015_TISSUE_MAPS.name)[Tissue.WM.value]
 
     _check_ismrm2015_img(wm_img)
+
+
+def test_read_ismrm2015_surfaces():
+
+    surfaces = fetcher.read_dataset_surfaces(Dataset.ISMRM2015_SURFACES.name)
+
+    expected_val = 2
+    obtained_val = len(surfaces)
+    assert expected_val == obtained_val
+
+    as_polydata = False
+    surface_type = ["pial"]
+    hemisphere_name = "L"
+    surface = fetcher.read_dataset_surfaces(
+        Dataset.ISMRM2015_SURFACES.name, surface_type=surface_type,
+        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+
+    _name = fetcher._build_surface_key(
+        surface_type[0], hemisphere=hemisphere_name)
+
+    expected_val = 138822
+    obtained_val = surface[_name].get_nb_triangles()
+    assert expected_val == obtained_val
+
+    expected_val = 69413
+    obtained_val = surface[_name].get_nb_vertices()
+    assert expected_val == obtained_val
+
+    hemisphere_name = "R"
+    surface = fetcher.read_dataset_surfaces(
+        Dataset.ISMRM2015_SURFACES.name, surface_type=surface_type,
+        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+
+    _name = fetcher._build_surface_key(
+        surface_type[0], hemisphere=hemisphere_name)
+
+    expected_val = 140448
+    obtained_val = surface[_name].get_nb_triangles()
+    assert expected_val == obtained_val
+
+    expected_val = 70226
+    obtained_val = surface[_name].get_nb_vertices()
+    assert expected_val == obtained_val
+
+    as_polydata = True
+    hemisphere_name = "L"
+    surface = fetcher.read_dataset_surfaces(
+        Dataset.ISMRM2015_SURFACES.name, surface_type=surface_type,
+        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+
+    _name = fetcher._build_surface_key(
+        surface_type[0], hemisphere=hemisphere_name)
+
+    expected_val = (138822, 3)
+    obtained_val = vtk_u.get_polydata_triangles(surface[_name]).shape
+    assert expected_val == obtained_val
+
+    expected_val = (69413, 3)
+    obtained_val = vtk_u.get_polydata_vertices(surface[_name]).shape
+    assert expected_val == obtained_val
+
+    hemisphere_name = "R"
+    surface = fetcher.read_dataset_surfaces(
+        Dataset.ISMRM2015_SURFACES.name, surface_type=surface_type,
+        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+
+    _name = fetcher._build_surface_key(
+        surface_type[0], hemisphere=hemisphere_name)
+
+    expected_val = (140448, 3)
+    obtained_val = vtk_u.get_polydata_triangles(surface[_name]).shape
+    assert expected_val == obtained_val
+
+    expected_val = (70226, 3)
+    obtained_val = vtk_u.get_polydata_vertices(surface[_name]).shape
+    assert expected_val == obtained_val
 
 
 def test_read_ismrm2015_synth_tracking():

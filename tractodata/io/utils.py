@@ -9,8 +9,10 @@ bundle_label = "subset"
 discrete_segmentation_label = "dseg"
 endpoint_label = "part"
 hemisphere_label = "hemi"
+surface_label = "surf"
 general_label = "label"
 label_value_separator = "-"
+label_value_alt_separator = "."
 
 
 class Label(enum.Enum):
@@ -18,6 +20,7 @@ class Label(enum.Enum):
     ENDPOINT = "endpoint"
     HEMISPHERE = "hemisphere"
     TISSUE = "tissue"
+    SURFACE = "surface"
 
 
 class Endpoint(enum.Enum):
@@ -32,6 +35,10 @@ class Hemisphere(enum.Enum):
 
 class Tissue(enum.Enum):
     WM = "WM"
+
+
+class Surface(enum.Enum):
+    PIAL = "pial"
 
 
 class LabelError(Exception):
@@ -73,6 +80,17 @@ def _build_hemisphere_regex():
            Hemisphere.LEFT.value + Hemisphere.RIGHT.value + ']{1}(?=_)'
 
 
+def _build_surface_regex():
+    """Build the surface regex.
+
+    Returns
+    -------
+    Surface regex.
+    """
+
+    return '(?<=_)' + Surface.PIAL.value + '(?=.' + surface_label + ')'
+
+
 def _build_tissue_segmentation_regex():
     """Build the tissue segmentation regex.
 
@@ -85,20 +103,31 @@ def _build_tissue_segmentation_regex():
            Tissue.WM.value + '(?=_' + discrete_segmentation_label + ')'
 
 
-def _get_filename_root(fname):
-    """Get the root name from the filename.
+def _get_filename_root(fname, has_period=False):
+    """Get the root name from the filename. If the filename root name is known
+    to contain a period ('.'), only the extension after the last one is
+    removed.
 
     Parameters
     ----------
     fname : string
         Filename.
+    has_period : bool, optional
+        `True` if the the filename root name is known to contain a period
+        ('.').
 
     Returns
     -------
-    Root name.
+    file_rootname : string
+        Root name.
     """
 
-    return os.path.basename(fname).split('.')[0]
+    if has_period:
+        file_rootname = os.path.splitext(os.path.basename(fname))[0]
+    else:
+        file_rootname = os.path.basename(fname).split('.')[0]
+
+    return file_rootname
 
 
 def _unknown_label_msg(label):
@@ -115,7 +144,7 @@ def _unknown_label_msg(label):
     return msg
 
 
-def get_label_value_from_filename(fname, label):
+def get_label_value_from_filename(fname, label, has_period=False):
     """Get the value to the relevant label contained in the filename.
 
     Parameters
@@ -124,6 +153,9 @@ def get_label_value_from_filename(fname, label):
         Filename where to look for the label value.
     label : Label
         Label whose value needs to be sought.
+    has_period : bool, optional
+        `True` if the the filename root name is known to contain a period
+        ('.').
 
     Returns
     -------
@@ -131,7 +163,7 @@ def get_label_value_from_filename(fname, label):
         Label value. `None` if not found.
     """
 
-    fname_root = _get_filename_root(fname)
+    fname_root = _get_filename_root(fname, has_period=has_period)
 
     if label == Label.BUNDLE:
         regex = _build_bundle_regex()
@@ -139,6 +171,8 @@ def get_label_value_from_filename(fname, label):
         regex = _build_endpoint_regex()
     elif label == Label.HEMISPHERE:
         regex = _build_hemisphere_regex()
+    elif label == Label.SURFACE:
+        regex = _build_surface_regex()
     elif label == Label.TISSUE:
         regex = _build_tissue_segmentation_regex()
     else:
@@ -154,8 +188,10 @@ def get_label_value_from_filename(fname, label):
     return label_value
 
 
-def _build_label_value_pair(label, value):
-    """Build a label value pair text.
+def _build_label_value_pair(
+        label, value, use_alt=False):
+    """Build a label value pair text. If the alternative form is to be used,
+    the value goes before the label, and the separator used is a period ('.').
 
     Parameters
     ----------
@@ -163,13 +199,20 @@ def _build_label_value_pair(label, value):
         Label text.
     value : str
         Value text.
+    use_alt : bool, optional
+        `True` if the alternative form is to be used.
 
     Returns
     -------
     Label value text.
     """
 
-    return label + label_value_separator + value
+    if not use_alt:
+        label_value_pair = label + label_value_separator + value
+    else:
+        label_value_pair = value + label_value_alt_separator + label
+
+    return label_value_pair
 
 
 def filter_list_on_list(primary_list, secondary_list):
@@ -222,6 +265,9 @@ def filter_filenames_on_value(fnames, label, value):
             label_value = _build_label_value_pair(endpoint_label, _value)
         elif label == Label.HEMISPHERE:
             label_value = _build_label_value_pair(hemisphere_label, _value)
+        elif label == Label.SURFACE:
+            label_value = _build_label_value_pair(
+                surface_label, _value, use_alt=True)
         elif label == Label.TISSUE:
             label_value = _build_label_value_pair(
                 discrete_segmentation_label, _value)
