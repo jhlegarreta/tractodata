@@ -661,6 +661,17 @@ def test_read_fibercup_bundle_endpoint_masks():
         _check_fibercup_img(mask_endpoint_img)
 
 
+def test_read_fibercup_diffusion_peaks():
+
+    peaks = fetcher.read_dataset_diffusion_peaks(
+        Dataset.FIBERCUP_DIFFUSION_PEAKS.name)
+
+    expected_val = (64, 64, 3, 15)
+    obtained_val = peaks.shape
+
+    assert expected_val == obtained_val
+
+
 def test_read_ismrm2015_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.ISMRM2015_ANAT.name)
