@@ -64,6 +64,7 @@ class Dataset(enum.Enum):
     FIBERCUP_BUNDLE_ENDPOINT_MASKS = "fibercup_bundle_endpoint_masks"
     FIBERCUP_DIFFUSION_PEAKS = "fibercup_diffusion_peaks"
     FIBERCUP_LOCAL_PROB_TRACKING = "fibercup_local_prob_tracking"
+    FIBERCUP_LOCAL_PROB_BUNDLING = "fibercup_local_prob_bundling"
     # ISBI2013_ANAT = "isbi2013_anat"
     # ISBI2013_DWI = "isbi2013_dwi"
     # ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
@@ -544,6 +545,20 @@ fetch_fibercup_local_prob_tracking = _make_fetcher(
     unzip=False
     )
 
+fetch_fibercup_local_prob_bundling = _make_fetcher(
+    "fetch_fibercup_local_prob_bundling",
+    pjoin(
+        tractodata_home, "datasets", "fibercup", "derivatives", "bundling",
+        "quickbundles", "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "9hr2e/",
+    ["download"],
+    ["sub01-dwi_space-orig_desc-PROB_subset-bundles_tractography.zip"],
+    ["399af174b025b03dcada6632cb759591"],
+    data_size="2.1MB",
+    doc="Download Fiber Cup dataset local probabilistic bundling data",
+    unzip=True
+    )
+
 fetch_isbi2013_anat = _make_fetcher(
     "fetch_isbi2013_anat",
     pjoin(tractodata_home, "datasets", "isbi2013", "raw", "sub-01", "anat"),
@@ -777,6 +792,11 @@ def get_fnames(name):
     elif name == Dataset.FIBERCUP_LOCAL_PROB_TRACKING.name:
         files, folder = fetch_fibercup_local_prob_tracking()
         return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.FIBERCUP_LOCAL_PROB_BUNDLING.name:
+        files, folder = fetch_fibercup_local_prob_bundling()
+        fnames = files[
+            'sub01-dwi_space-orig_desc-PROB_subset-bundles_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
     # elif name == Dataset.ISBI2013_ANAT.name:
     #   files, folder = fetch_isbi2013_anat()
     #   return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
