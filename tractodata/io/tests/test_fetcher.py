@@ -559,6 +559,27 @@ def test_read_fibercup_synth_bundling():
     assert expected_val == obtained_val
 
 
+def test_read_fibercup_synth_bundle_centroids():
+
+    anat_name = Dataset.FIBERCUP_ANAT.name
+    bundling_name = Dataset.FIBERCUP_SYNTH_BUNDLE_CENTROIDS.name
+
+    centroids = fetcher.read_dataset_bundling(anat_name, bundling_name)
+
+    expected_val = len(fibercup_bundles)
+    obtained_val = len(centroids)
+
+    assert expected_val == obtained_val
+
+    npt.assert_equal(
+        centroids["bundle6"].__class__.__name__, StatefulTractogram.__name__)
+
+    expected_val = [1]*len(centroids)
+    obtained_val = [len(centroid) for key, centroid in centroids.items()]
+
+    assert expected_val == obtained_val
+
+
 def test_read_fibercup_bundle_masks():
 
     name = Dataset.FIBERCUP_BUNDLE_MASKS.name
