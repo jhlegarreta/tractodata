@@ -151,7 +151,7 @@ def _build_surface_key(surface_type, hemisphere=None):
         Hemisphere.
 
     Returns
-    ----------
+    -------
     key : string
         Key value.
     """
@@ -712,7 +712,6 @@ fetch_ismrm2015_bundle_masks = _make_fetcher(
     doc="Download ISMRM 2015 Tractography Challenge dataset synthetic bundle masks",  # noqa E501
     unzip=True
     )
-
 
 fetch_ismrm2015_bundle_endpoint_masks = _make_fetcher(
     "fetch_ismrm2015_bundle_endpoint_masks",
