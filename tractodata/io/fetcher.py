@@ -60,6 +60,7 @@ class Dataset(enum.Enum):
     FIBERCUP_TISSUE_MAPS = "fibercup_tissue_maps"
     FIBERCUP_SYNTH_TRACKING = "fibercup_synth_tracking"
     FIBERCUP_SYNTH_BUNDLING = "fibercup_synth_bundling"
+    FIBERCUP_SYNTH_BUNDLE_CENTROIDS = "fibercup_synth_bundle_centroids"
     FIBERCUP_BUNDLE_MASKS = "fibercup_bundle_masks"
     FIBERCUP_BUNDLE_ENDPOINT_MASKS = "fibercup_bundle_endpoint_masks"
     FIBERCUP_DIFFUSION_PEAKS = "fibercup_diffusion_peaks"
@@ -508,6 +509,20 @@ fetch_fibercup_synth_bundling = _make_fetcher(
     unzip=True
     )
 
+fetch_fibercup_synth_bundle_centroids = _make_fetcher(
+    "fetch_fibercup_synth_bundle_centroids",
+    pjoin(
+        tractodata_home, "datasets", "fibercup", "derivatives", "centroids",
+        "quickbundles", "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "7eaxv/",
+    ["download"],
+    ["sub01-dwi_space-orig_desc-synth_subset-bundles_centroid.zip"],
+    ["c60f4206dd0dfc1f1e1a4f282935eee4"],
+    data_size="20.7KB",
+    doc="Download Fiber Cup dataset synthetic QuickBundles bundle centroid data",  # noqa E501
+    unzip=True
+    )
+
 fetch_fibercup_bundle_masks = _make_fetcher(
     "fetch_fibercup_bundle_masks",
     pjoin(
@@ -821,6 +836,11 @@ def get_fnames(name):
         files, folder = fetch_fibercup_synth_bundling()
         fnames = files[
             'sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.FIBERCUP_SYNTH_BUNDLE_CENTROIDS.name:
+        files, folder = fetch_fibercup_synth_bundle_centroids()
+        fnames = files[
+            'sub01-dwi_space-orig_desc-synth_subset-bundles_centroid.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.FIBERCUP_BUNDLE_MASKS.name:
         files, folder = fetch_fibercup_bundle_masks()
