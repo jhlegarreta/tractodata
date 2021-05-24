@@ -1285,14 +1285,14 @@ def test_read_ismrm2015_submissions_bundle_performance_data():
     assert expected_val == obtained_val
 
 
-def fetch_mni2009cnonlinsymm_anat():
+def test_read_mni2009cnonlinsymm_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.MNI2009CNONLINSYMM_ANAT.name)
 
     _check_mni2009cnonlinsymm_img(anat_img)
 
 
-def fetch_mni2009cnonlinsymm_surfaces():
+def test_read_mni2009cnonlinsymm_surfaces():
 
     surfaces = fetcher.read_dataset_surfaces(
         Dataset.MNI2009CNONLINSYMM_SURFACES.name)
