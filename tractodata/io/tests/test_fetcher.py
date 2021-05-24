@@ -698,6 +698,9 @@ def test_read_fibercup_local_prob_bundling():
     obtained_val = len(bundles["bundle3"])
     assert expected_val == obtained_val
 
+    npt.assert_equal(
+        bundles["bundle3"].__class__.__name__, StatefulTractogram.__name__)
+
 
 def test_read_ismrm2015_anat():
 
