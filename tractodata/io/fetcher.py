@@ -77,6 +77,8 @@ class Dataset(enum.Enum):
     ISMRM2015_BUNDLE_MASKS = "ismrm2015_bundle_masks"
     ISMRM2015_BUNDLE_ENDPOINT_MASKS = "ismrm2015_bundle_endpoint_masks"
     ISMRM2015_CHALLENGE_SUBMISSION = "ismrm2015_challenge_submission"
+    MNI2009CNONLINSYMM_ANAT = "mni2009cnonlinsymm_anat"
+    MNI2009CNONLINSYMM_SURFACES = "mni2009cnonlinsymm_surfaces"
 
 
 class FetcherError(Exception):
@@ -174,6 +176,23 @@ def _check_known_dataset(name):
 
     if name not in Dataset.__members__.keys():
         raise DatasetError(_unknown_dataset_msg(name))
+
+
+def _exclude_dataset_use_permission_files(fnames, permission_fname):
+    """Exclude dataset use permission files from the data filenames.
+
+    Parameters
+    ----------
+    fnames : list
+        Filenames.
+
+    Returns
+    -------
+    key : string
+        Key value.
+    """
+
+    return [f for f in fnames if permission_fname not in f]
 
 
 def update_progressbar(progress, total_length):
@@ -741,6 +760,34 @@ fetch_ismrm2015_submission_res = _make_fetcher(
     unzip=True
     )
 
+fetch_mni2009cnonlinsymm_anat = _make_fetcher(
+    "fetch_mni2009cnonlinsymm_anat",
+    pjoin(tractodata_home, "datasets", "mni", "derivatives", "atlas",
+          "icbm152_2009c_nonlinsymm", "sub-01", "anat"),
+    TRACTODATA_DATASETS_URL + "4hqzj/",
+    ["download"],
+    ["sub01-T1w.zip"],
+    ["0e3455597421e8fb14321d236bae45c9"],
+    data_size="4.2MB",
+    doc="Download MNI ICBM 2009c Nonlinear Symmetric 1×1x1mm template dataset "
+        "brain-masked anatomy data",
+    unzip=True
+    )
+
+fetch_mni2009cnonlinsymm_surfaces = _make_fetcher(
+    "fetch_mni2009cnonlinsymm_surfaces",
+    pjoin(tractodata_home, "datasets", "mni", "derivatives", "surface",
+          "fastsurfer", "sub-01", "anat"),
+    TRACTODATA_DATASETS_URL + "4dfv7/",
+    ["download"],
+    ["sub01-T1w_space-orig_pial.surf.zip"],
+    ["b36a14f78ff006a6b881414d45b1111c"],
+    data_size="8.1MB",
+    doc="Download MNI ICBM 2009c Nonlinear Symmetric 1×1x1mm template dataset "
+        "surface data",
+    unzip=True
+    )
+
 
 def get_fnames(name):
     """Provide full paths to example or test datasets.
@@ -846,6 +893,18 @@ def get_fnames(name):
         files, folder = fetch_ismrm2015_submission_res()
         fnames = files[
             'sub02-dwi_space-orig_desc-synth_submission_results_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.MNI2009CNONLINSYMM_ANAT.name:
+        files, folder = fetch_mni2009cnonlinsymm_anat()
+        fnames = files['sub01-T1w.zip'][2]
+        # Exclude the COPYING file
+        fnames = _exclude_dataset_use_permission_files(fnames, 'COPYING')
+        return pjoin(folder, fnames[0])
+    elif name == Dataset.MNI2009CNONLINSYMM_SURFACES.name:
+        files, folder = fetch_mni2009cnonlinsymm_surfaces()
+        fnames = files['sub01-T1w_space-orig_pial.surf.zip'][2]
+        # Exclude the COPYING file
+        fnames = _exclude_dataset_use_permission_files(fnames, 'COPYING')
         return sorted([pjoin(folder, f) for f in fnames])
     else:
         raise DatasetError(_unknown_dataset_msg(name))
