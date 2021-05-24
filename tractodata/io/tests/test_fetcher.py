@@ -38,6 +38,8 @@ ismrm2015_commissural_bundles = ["CC", "CA", "CP", "Fornix", "MCP"]
 ismrm2015_tissues = [Tissue.WM.value]
 ismrm2015_surfaces = [Surface.PIAL.value]
 
+tracking_config_file_necessary_keys = ["cluster_threshold"]
+
 
 def _build_fibercup_bundle_endpoints():
 
@@ -110,6 +112,12 @@ def _check_mni2009cnonlinsymm_img(img):
         img.__class__.__name__, nib.Nifti1Image.__name__)
     npt.assert_equal(img.get_fdata().dtype, np.float64)
     npt.assert_equal(img.get_fdata().shape, (193, 229, 193))
+
+
+def _check_tracking_evaluation_config(config):
+
+    for key, val in config.items():
+        assert set(tracking_config_file_necessary_keys) <= val.keys()
 
 
 def test_check_hash():
@@ -731,6 +739,20 @@ def test_read_fibercup_local_prob_bundling():
         bundles["bundle3"].__class__.__name__, StatefulTractogram.__name__)
 
 
+def test_read_fibercup_tracking_evaluation_config():
+
+    tracking_evaluation_config = \
+        fetcher.read_dataset_tracking_evaluation_config(
+            Dataset.FIBERCUP_TRACKING_EVALUATION_CONFIG.name)
+
+    expected_val = len(fibercup_bundles)
+    obtained_val = len(tracking_evaluation_config)
+
+    assert expected_val == obtained_val
+
+    _check_tracking_evaluation_config(tracking_evaluation_config)
+
+
 def test_read_ismrm2015_anat():
 
     anat_img = fetcher.read_dataset_anat(Dataset.ISMRM2015_ANAT.name)
@@ -1283,6 +1305,20 @@ def test_read_ismrm2015_submissions_bundle_performance_data():
     obtained_val = df.columns.to_list()
 
     assert expected_val == obtained_val
+
+
+def test_read_ismrm2015_tracking_evaluation_config():
+
+    tracking_evaluation_config = \
+        fetcher.read_dataset_tracking_evaluation_config(
+            Dataset.ISMRM2015_TRACKING_EVALUATION_CONFIG.name)
+
+    expected_val = 25
+    obtained_val = len(tracking_evaluation_config)
+
+    assert expected_val == obtained_val
+
+    _check_tracking_evaluation_config(tracking_evaluation_config)
 
 
 def test_read_mni2009cnonlinsymm_anat():

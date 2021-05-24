@@ -2,6 +2,7 @@
 
 import enum
 import itertools
+import json
 import os
 import subprocess
 import sys
@@ -66,6 +67,7 @@ class Dataset(enum.Enum):
     FIBERCUP_DIFFUSION_PEAKS = "fibercup_diffusion_peaks"
     FIBERCUP_LOCAL_PROB_TRACKING = "fibercup_local_prob_tracking"
     FIBERCUP_LOCAL_PROB_BUNDLING = "fibercup_local_prob_bundling"
+    FIBERCUP_TRACKING_EVALUATION_CONFIG = "fibercup_tracking_evaluation_config"
     # ISBI2013_ANAT = "isbi2013_anat"
     # ISBI2013_DWI = "isbi2013_dwi"
     # ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
@@ -78,6 +80,7 @@ class Dataset(enum.Enum):
     ISMRM2015_BUNDLE_MASKS = "ismrm2015_bundle_masks"
     ISMRM2015_BUNDLE_ENDPOINT_MASKS = "ismrm2015_bundle_endpoint_masks"
     ISMRM2015_CHALLENGE_SUBMISSION = "ismrm2015_challenge_submission"
+    ISMRM2015_TRACKING_EVALUATION_CONFIG = "ismrm2015_tracking_evaluation_config"  # noqa E501
     MNI2009CNONLINSYMM_ANAT = "mni2009cnonlinsymm_anat"
     MNI2009CNONLINSYMM_SURFACES = "mni2009cnonlinsymm_surfaces"
 
@@ -593,6 +596,19 @@ fetch_fibercup_local_prob_bundling = _make_fetcher(
     unzip=True
     )
 
+fetch_fibercup_tracking_evaluation_config = _make_fetcher(
+    "fetch_fibercup_tracking_evaluation_config",
+    pjoin(tractodata_home, "datasets", "fibercup", "derivatives", "scoring",
+          "dwi"),
+    TRACTODATA_DATASETS_URL + "r3h54/",
+    ["download"],
+    ["tracking_evaluation_config.json"],
+    ["6399cb13a9600acee1ad8fe69437a5af"],
+    data_size="917B",
+    doc="Download Fiber Cup dataset tracking evaluation config file",
+    unzip=False
+    )
+
 fetch_isbi2013_anat = _make_fetcher(
     "fetch_isbi2013_anat",
     pjoin(tractodata_home, "datasets", "isbi2013", "raw", "sub-01", "anat"),
@@ -718,21 +734,6 @@ fetch_ismrm2015_synth_bundling = _make_fetcher(
     unzip=True
     )
 
-fetch_ismrm2015_qb = _make_fetcher(
-    "fetch_ismrm2015_qb",
-    pjoin(
-        tractodata_home, "datasets", "ismrm2015", "derivatives", "qb",
-        "sub-01", "dwi"),
-    TRACTODATA_DATASETS_URL + "datasets/" + "ismrm2015/" + "derivatives/" +
-    "qb/" + "sub-01/" + "dwi/",
-    ["bundles_attributes.json"],
-    ["bundles_attributes.json"],
-    ["file1_SHA"],
-    data_size="12KB",
-    doc="Download ISMRM 2015 Tractography Challenge QuickBundles centroid config data",  # noqa E501
-    unzip=True
-    )
-
 fetch_ismrm2015_bundle_masks = _make_fetcher(
     "fetch_ismrm2015_bundle_masks",
     pjoin(
@@ -773,6 +774,19 @@ fetch_ismrm2015_submission_res = _make_fetcher(
     data_size="116.8KB",
     doc="Download ISMRM 2015 Tractography Challenge submission result data",
     unzip=True
+    )
+
+fetch_ismrm2015_tracking_evaluation_config = _make_fetcher(
+    "fetch_ismrm2015_tracking_evaluation_config",
+    pjoin(tractodata_home, "datasets", "ismrm2015", "derivatives", "scoring",
+          "dwi"),
+    TRACTODATA_DATASETS_URL + "wbdyr/",
+    ["download"],
+    ["tracking_evaluation_config.json"],
+    ["164489da0dc4fb069212543c669ba284"],
+    data_size="1.4KB",
+    doc="Download ISMRM 2015 Tractography Challenge dataset tracking evaluation config file",  # noqa E501
+    unzip=False
     )
 
 fetch_mni2009cnonlinsymm_anat = _make_fetcher(
@@ -863,6 +877,9 @@ def get_fnames(name):
         fnames = files[
             'sub01-dwi_space-orig_desc-PROB_subset-bundles_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.FIBERCUP_TRACKING_EVALUATION_CONFIG.name:
+        files, folder = fetch_fibercup_tracking_evaluation_config()
+        return pjoin(folder, list(files.keys())[0])
     # elif name == Dataset.ISBI2013_ANAT.name:
     #   files, folder = fetch_isbi2013_anat()
     #   return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
@@ -914,6 +931,9 @@ def get_fnames(name):
         fnames = files[
             'sub02-dwi_space-orig_desc-synth_submission_results_tractography.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.ISMRM2015_TRACKING_EVALUATION_CONFIG.name:
+        files, folder = fetch_ismrm2015_tracking_evaluation_config()
+        return pjoin(folder, list(files.keys())[0])
     elif name == Dataset.MNI2009CNONLINSYMM_ANAT.name:
         files, folder = fetch_mni2009cnonlinsymm_anat()
         fnames = files['sub01-T1w.zip'][2]
@@ -1409,6 +1429,28 @@ def read_dataset_diffusion_peaks(name):
     fname = get_fnames(name)
 
     return nib.load(fname)
+
+
+def read_dataset_tracking_evaluation_config(name):
+    """Load dataset tracking evaluation configuration data.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    config : dict
+        Tracking evaluation configuration data.
+    """
+
+    _check_known_dataset(name)
+
+    fname = get_fnames(name)
+
+    with open(fname, 'r') as f:
+        return json.load(f)
 
 
 def _get_ismrm2015_submission_id_from_filenames(fnames):
