@@ -75,6 +75,7 @@ class Dataset(enum.Enum):
     ISMRM2015_SURFACES = "ismrm2015_surfaces"
     ISMRM2015_SYNTH_TRACKING = "ismrm2015_synth_tracking"
     ISMRM2015_SYNTH_BUNDLING = "ismrm2015_synth_bundling"
+    ISMRM2015_SYNTH_BUNDLE_CENTROIDS = "ismrm2015_synth_bundle_centroids"
     ISMRM2015_BUNDLE_MASKS = "ismrm2015_bundle_masks"
     ISMRM2015_BUNDLE_ENDPOINT_MASKS = "ismrm2015_bundle_endpoint_masks"
     ISMRM2015_CHALLENGE_SUBMISSION = "ismrm2015_challenge_submission"
@@ -718,6 +719,19 @@ fetch_ismrm2015_synth_bundling = _make_fetcher(
     unzip=True
     )
 
+fetch_ismrm2015_synth_bundle_centroids = _make_fetcher(
+    "fetch_ismrm2015_synth_bundle_centroids",
+    pjoin(
+        tractodata_home, "datasets", "ismrm2015", "derivatives", "centroids",
+        "quickbundles", "sub-01", "dwi"),
+    TRACTODATA_DATASETS_URL + "/",
+    ["sub01-dwi_space-orig_desc-synth_subset-bundles_centroid.zip"],
+    [""],
+    data_size="12KB",
+    doc="Download ISMRM 2015 Tractography Challenge synthetic QuickBundles bundle centroid data",  # noqa E501
+    unzip=True
+    )
+
 fetch_ismrm2015_qb = _make_fetcher(
     "fetch_ismrm2015_qb",
     pjoin(
@@ -898,6 +912,11 @@ def get_fnames(name):
         files, folder = fetch_ismrm2015_synth_bundling()
         fnames = files[
             'sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.ISMRM2015_SYNTH_BUNDLE_CENTROIDS.name:
+        files, folder = fetch_ismrm2015_synth_bundle_centroids()
+        fnames = files[
+            'sub01-dwi_space-orig_desc-synth_subset-bundles_centroid.zip'][2]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISMRM2015_BUNDLE_MASKS.name:
         files, folder = fetch_ismrm2015_bundle_masks()

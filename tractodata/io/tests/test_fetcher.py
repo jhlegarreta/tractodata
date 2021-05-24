@@ -963,6 +963,27 @@ def test_read_ismrm2015_synth_bundling():
     assert expected_val == obtained_val
 
 
+def test_read_ismrm2015_synth_bundle_centroids():
+
+    anat_name = Dataset.ISMRM2015_ANAT.name
+    bundling_name = Dataset.ISMRM2015_SYNTH_BUNDLE_CENTROIDS.name
+
+    centroids = fetcher.read_dataset_bundling(anat_name, bundling_name)
+
+    expected_val = 25
+    obtained_val = len(centroids)
+
+    assert expected_val == obtained_val
+
+    npt.assert_equal(
+        centroids["CC"].__class__.__name__, StatefulTractogram.__name__)
+
+    expected_val = [1]*len(centroids)
+    obtained_val = [len(centroid) for key, centroid in centroids.items()]
+
+    assert expected_val == obtained_val
+
+
 def test_read_ismrm2015_bundle_masks():
 
     name = Dataset.ISMRM2015_BUNDLE_MASKS.name
