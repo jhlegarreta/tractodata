@@ -700,7 +700,7 @@ fetch_ismrm2015_synth_tracking = _make_fetcher(
     ["sub01-dwi_space-orig_desc-synth_tractography.trk"],
     ["2a72eeb2949285176344eca31f0b3a39"],
     data_size="235.8MB",
-    doc="Download ISMRM 2015 Tractography Challenge synthetic tracking data",
+    doc="Download ISMRM 2015 Tractography Challenge dataset synthetic tracking data",  # noqa E501
     unzip=False
     )
 
