@@ -122,6 +122,14 @@ def test_get_surface_from_filename():
 
     assert expected_val == obtained_val
 
+    fname = "/dir/subdir/sub01-T1w_hemi-R_space-orig_wm.surf.vtk"
+
+    expected_val = "wm"
+    obtained_val = get_label_value_from_filename(
+        fname, Label.SURFACE, has_period=True)
+
+    assert expected_val == obtained_val
+
 
 def test_filter_list_on_list():
 

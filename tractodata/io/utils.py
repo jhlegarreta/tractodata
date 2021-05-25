@@ -39,6 +39,7 @@ class Tissue(enum.Enum):
 
 class Surface(enum.Enum):
     PIAL = "pial"
+    WM = "wm"
 
 
 class LabelError(Exception):
@@ -88,7 +89,8 @@ def _build_surface_regex():
     Surface regex.
     """
 
-    return '(?<=_)' + Surface.PIAL.value + '(?=.' + surface_label + ')'
+    return '(?<=_)' + Surface.PIAL.value + '|' + Surface.WM.value + '(?=.' + \
+           surface_label + ')'
 
 
 def _build_tissue_segmentation_regex():
