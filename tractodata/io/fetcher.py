@@ -68,6 +68,9 @@ class Dataset(enum.Enum):
     FIBERCUP_LOCAL_PROB_TRACKING = "fibercup_local_prob_tracking"
     FIBERCUP_LOCAL_PROB_BUNDLING = "fibercup_local_prob_bundling"
     FIBERCUP_TRACKING_EVALUATION_CONFIG = "fibercup_tracking_evaluation_config"
+    HCP_TR_ANAT = "hcp_tr_anat"
+    HCP_TR_SURFACES = "hcp_tr_surfaces"
+    HCP_TR_PFT_TRACKING = "hcp_tr_pft_tracking"
     # ISBI2013_ANAT = "isbi2013_anat"
     # ISBI2013_DWI = "isbi2013_dwi"
     # ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
@@ -609,6 +612,46 @@ fetch_fibercup_tracking_evaluation_config = _make_fetcher(
     unzip=False
     )
 
+fetch_hcp_tr_anat = _make_fetcher(
+    "fetch_hcp_tr_anat",
+    pjoin(tractodata_home, "datasets", "hcp_tr", "derivatives", "structural",
+          "tractoflow_fsl", "sub-103818_re", "anat"),
+    TRACTODATA_DATASETS_URL + "8xedb/",
+    ["download"],
+    ["sub103818_re-T1w_space-MNI152NLin2009cSym.nii.gz"],
+    ["3e0adbf95d5c48519bb00f1492f52e39"],
+    data_size="3.6MB",
+    doc="Download HCP Test-Retest subject retest dataset anatomy data",
+    unzip=False
+    )
+
+fetch_hcp_tr_surfaces = _make_fetcher(
+    "fetch_hcp_tr_surfaces",
+    pjoin(tractodata_home, "datasets", "hcp_tr", "derivatives", "surface",
+          "set_nf_civet", "sub-103818_re", "anat"),
+    TRACTODATA_DATASETS_URL + "n89q2/",
+    ["download"],
+    ["sub103818_re-T1w_space-MNI152NLin2009cSym_LPS.surf.zip"],
+    ["0fa063e5b648a7b64d11ae0948573043"],
+    data_size="3.9MB",
+    doc="Download HCP Test-Retest subject retest dataset surface data",
+    unzip=True
+    )
+
+fetch_hcp_tr_pft_tracking = _make_fetcher(
+    "fetch_hcp_tr_pft_tracking",
+    pjoin(
+        tractodata_home, "datasets", "hcp_tr", "derivatives", "tracking",
+        "tractoflow_fsl", "sub-103818_re", "dwi"),
+    TRACTODATA_DATASETS_URL + "xwc8b/",
+    ["download"],
+    ["sub103818_re-dwi_space-MNI152NLin2009cSym_desc-PFT_tractography.trk"],
+    ["dbc59743f56e6372018359613a6ff262"],
+    data_size="4.2MB",
+    doc="Download HCP Test-Retest subject retest dataset PFT tracking data",
+    unzip=False
+    )
+
 fetch_isbi2013_anat = _make_fetcher(
     "fetch_isbi2013_anat",
     pjoin(tractodata_home, "datasets", "isbi2013", "raw", "sub-01", "anat"),
@@ -879,6 +922,16 @@ def get_fnames(name):
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.FIBERCUP_TRACKING_EVALUATION_CONFIG.name:
         files, folder = fetch_fibercup_tracking_evaluation_config()
+        return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.HCP_TR_ANAT.name:
+        files, folder = fetch_hcp_tr_anat()
+        return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.HCP_TR_SURFACES.name:
+        files, folder = fetch_hcp_tr_surfaces()
+        fnames = files['sub103818_re-T1w_space-MNI152NLin2009cSym_LPS.surf.zip'][2]  # noqa E501
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.HCP_TR_PFT_TRACKING.name:
+        files, folder = fetch_hcp_tr_pft_tracking()
         return pjoin(folder, list(files.keys())[0])
     # elif name == Dataset.ISBI2013_ANAT.name:
     #   files, folder = fetch_isbi2013_anat()

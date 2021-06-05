@@ -98,6 +98,14 @@ def _check_fibercup_img(img):
     npt.assert_equal(img.get_fdata().shape, (64, 64, 3))
 
 
+def _check_hcp_tr_img(img):
+
+    npt.assert_equal(
+        img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(img.get_fdata().dtype, np.float64)
+    npt.assert_equal(img.get_fdata().shape, (105, 138, 111))
+
+
 def _check_ismrm2015_img(img):
 
     npt.assert_equal(
@@ -751,6 +759,87 @@ def test_read_fibercup_tracking_evaluation_config():
     assert expected_val == obtained_val
 
     _check_tracking_evaluation_config(tracking_evaluation_config)
+
+
+def test_read_hcp_tr_anat():
+
+    anat_img = fetcher.read_dataset_anat(Dataset.HCP_TR_ANAT.name)
+
+    _check_hcp_tr_img(anat_img)
+
+
+def test_read_hcp_tr_surfaces():
+
+    surfaces = fetcher.read_dataset_surfaces(Dataset.HCP_TR_SURFACES.name)
+
+    expected_val = 4
+    obtained_val = len(surfaces)
+    assert expected_val == obtained_val
+
+    as_polydata = False
+    surface_type = ["pial"]
+    hemisphere_name = "L"
+    surface = fetcher.read_dataset_surfaces(
+        Dataset.HCP_TR_SURFACES.name, surface_type=surface_type,
+        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+
+    _name = fetcher._build_surface_key(
+        surface_type[0], hemisphere=hemisphere_name)
+
+    expected_val = 81920
+    obtained_val = surface[_name].get_nb_triangles()
+    assert expected_val == obtained_val
+
+    expected_val = 40962
+    obtained_val = surface[_name].get_nb_vertices()
+    assert expected_val == obtained_val
+
+    hemisphere_name = "R"
+    surface = fetcher.read_dataset_surfaces(
+        Dataset.HCP_TR_SURFACES.name, surface_type=surface_type,
+        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+
+    _name = fetcher._build_surface_key(
+        surface_type[0], hemisphere=hemisphere_name)
+
+    expected_val = 81920
+    obtained_val = surface[_name].get_nb_triangles()
+    assert expected_val == obtained_val
+
+    expected_val = 40962
+    obtained_val = surface[_name].get_nb_vertices()
+    assert expected_val == obtained_val
+
+    surface_type = ["wm"]
+    as_polydata = True
+    hemisphere_name = "L"
+    surface = fetcher.read_dataset_surfaces(
+        Dataset.HCP_TR_SURFACES.name, surface_type=surface_type,
+        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+
+    _name = fetcher._build_surface_key(
+        surface_type[0], hemisphere=hemisphere_name)
+
+    expected_val = (81920, 3)
+    obtained_val = vtk_u.get_polydata_triangles(surface[_name]).shape
+    assert expected_val == obtained_val
+
+    expected_val = (40962, 3)
+    obtained_val = vtk_u.get_polydata_vertices(surface[_name]).shape
+    assert expected_val == obtained_val
+
+
+def test_read_hcp_tr_pft_tracking():
+
+    sft = fetcher.read_dataset_tracking(
+        Dataset.HCP_TR_ANAT.name, Dataset.HCP_TR_PFT_TRACKING.name)
+
+    npt.assert_equal(sft.__class__.__name__, StatefulTractogram.__name__)
+
+    expected_val = 20000
+    obtained_val = len(sft)
+
+    assert expected_val == obtained_val
 
 
 def test_read_ismrm2015_anat():
