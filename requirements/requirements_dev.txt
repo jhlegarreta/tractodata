@@ -1,9 +1,4 @@
-dipy
-numpy
-nibabel
-pandas
 pytest==5.3.*
 pytest-cov
 pytest-xdist
 pytest-pep8
-trimeshpy==0.0.2
