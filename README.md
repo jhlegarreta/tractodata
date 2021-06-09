@@ -1,7 +1,8 @@
 # tractodata
 
 
-[![Build Status](https://github.com/jhlegarreta/tractodata/actions/workflows/test_package.yml/badge.svg?branch=main)](https://github.com/jhlegarreta/tractodata/actions/workflows/test_package.yml?query=branch%3Amain)
+[![Build status](https://github.com/jhlegarreta/tractodata/actions/workflows/test_package.yml/badge.svg?branch=main)](https://github.com/jhlegarreta/tractodata/actions/workflows/test_package.yml?query=branch%3Amain)
+[![Code format](https://github.com/jhlegarreta/tractodata/actions/workflows/check_format.yml/badge.svg?branch=dev)](https://github.com/jhlegarreta/tractodata/actions/workflows/check_format.yml?query=branch%3Amain)
 
 Tractography data.
 
