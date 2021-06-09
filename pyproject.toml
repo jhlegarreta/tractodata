@@ -1,0 +1,30 @@
+title = "tractodata TOML configuration file"
+
+# Code formatting configuration
+
+[tool.black]
+line-length = 79
+target-version = ["py36"]
+exclude ='''
+(
+  /(
+      \.eggs        # exclude a few common directories in the
+    | \.git         # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  | data            # also separately exclude project-specific files
+                    # and folders in the root of the project
+)
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 79
+src_paths = ["tractodata"]
