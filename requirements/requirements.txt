@@ -1,5 +1,5 @@
 dipy
-numpy
 nibabel
+numpy
 pandas
 trimeshpy==0.0.2
