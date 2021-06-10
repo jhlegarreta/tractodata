@@ -1,7 +1,7 @@
 """Read test or example data."""
 
-from os.path import join as pjoin, dirname
-
+from os.path import dirname
+from os.path import join as pjoin
 
 DATA_DIR = pjoin(dirname(__file__), 'datasets')
 

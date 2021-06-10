@@ -2,29 +2,24 @@
 # -*- coding: utf-8 -*-
 
 import itertools
-import os.path as op
 import os
+import os.path as op
 import tempfile
-
-import nibabel as nib
-import numpy as np
-import numpy.testing as npt
-
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from importlib import reload
 from os.path import join as pjoin
 from threading import Thread
 from urllib.request import pathname2url
 
-from importlib import reload
-
+import nibabel as nib
+import numpy as np
+import numpy.testing as npt
 from dipy.io.streamline import StatefulTractogram
 from nibabel.tmpdirs import TemporaryDirectory
-
 from trimeshpy import vtk_util as vtk_u
 
-from tractodata.data import TEST_FILES
 import tractodata.io.fetcher as fetcher
-
+from tractodata.data import TEST_FILES
 from tractodata.io.fetcher import TRACTODATA_DATASETS_URL, Dataset
 from tractodata.io.utils import Endpoint, Hemisphere, Surface, Tissue
 
