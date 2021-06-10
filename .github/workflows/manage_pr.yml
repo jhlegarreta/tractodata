@@ -8,7 +8,7 @@ jobs:
     name: Manage pull requests
     runs-on: ubuntu-latest
     steps:
-      - name: Prevent WIP PRs from being merged
-        uses: wip/action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Prevent WIP PRs from being merged
+      uses: wip/action@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
