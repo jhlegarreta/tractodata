@@ -19,7 +19,7 @@ repos:
         description: Check for files that contain merge conflict strings.
       - id: check-toml
       - id: check-yaml
-        exclude: .github/workflows/*
+        exclude: .github/workflows
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: requirements-txt-fixer
