@@ -48,13 +48,10 @@ jobs:
         pip --version
         pip list
 
-    - name: Lint and Tests
+    - name: Run tests
       run: |
         # tox --sitepackages
-        pip install flake8==3.7.9
-        flake8 --version
         python -c 'import tractodata'
-        flake8 . --count --statistics
         coverage run --source tractodata -m pytest tractodata -o junit_family=xunit2 -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
 
     - name: Upload pytest test results
