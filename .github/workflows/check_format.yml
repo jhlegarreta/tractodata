@@ -1,4 +1,4 @@
-name: check code format
+name: code format
 
 on: [push]
 
