@@ -23,11 +23,27 @@ from tractodata.data import TEST_FILES
 from tractodata.io.fetcher import TRACTODATA_DATASETS_URL, Dataset
 from tractodata.io.utils import Endpoint, Hemisphere, Surface, Tissue
 
-fibercup_bundles = ["bundle1", "bundle2", "bundle3", "bundle4", "bundle5",
-                    "bundle6", "bundle7"]
+fibercup_bundles = [
+    "bundle1",
+    "bundle2",
+    "bundle3",
+    "bundle4",
+    "bundle5",
+    "bundle6",
+    "bundle7",
+]
 fibercup_tissues = [Tissue.WM.value]
-ismrm2015_association_bundles = ["Cing", "FPT", "ICP", "ILF", "OR", "POPT",
-                                 "SCP", "SLF", "UF"]
+ismrm2015_association_bundles = [
+    "Cing",
+    "FPT",
+    "ICP",
+    "ILF",
+    "OR",
+    "POPT",
+    "SCP",
+    "SLF",
+    "UF",
+]
 ismrm2015_projection_bundles = ["CST"]
 ismrm2015_commissural_bundles = ["CC", "CA", "CP", "Fornix", "MCP"]
 ismrm2015_tissues = [Tissue.WM.value]
@@ -40,79 +56,95 @@ def _build_fibercup_bundle_endpoints():
 
     return list(
         itertools.product(
-            fibercup_bundles, [Endpoint.HEAD.value, Endpoint.TAIL.value]))
+            fibercup_bundles, [Endpoint.HEAD.value, Endpoint.TAIL.value]
+        )
+    )
 
 
 def _build_ismrm2015_bundles():
 
-    assoc_val = list(itertools.product(
-        ismrm2015_association_bundles,
-        [Hemisphere.LEFT.value, Hemisphere.RIGHT.value]))
+    assoc_val = list(
+        itertools.product(
+            ismrm2015_association_bundles,
+            [Hemisphere.LEFT.value, Hemisphere.RIGHT.value],
+        )
+    )
 
     proj_val = itertools.product(
         ismrm2015_projection_bundles,
-        [Hemisphere.LEFT.value, Hemisphere.RIGHT.value])
+        [Hemisphere.LEFT.value, Hemisphere.RIGHT.value],
+    )
 
-    return list(itertools.chain.from_iterable(
-        [assoc_val, ismrm2015_commissural_bundles, proj_val]))
+    return list(
+        itertools.chain.from_iterable(
+            [assoc_val, ismrm2015_commissural_bundles, proj_val]
+        )
+    )
 
 
 def _build_ismrm2015_bundle_endpoints():
 
-    assoc_val = list(itertools.product(
-        ismrm2015_association_bundles,
-        [Hemisphere.LEFT.value, Hemisphere.RIGHT.value],
-        [Endpoint.HEAD.value, Endpoint.TAIL.value]))
+    assoc_val = list(
+        itertools.product(
+            ismrm2015_association_bundles,
+            [Hemisphere.LEFT.value, Hemisphere.RIGHT.value],
+            [Endpoint.HEAD.value, Endpoint.TAIL.value],
+        )
+    )
 
-    commiss_val = list(itertools.product(
-        ismrm2015_commissural_bundles,
-        [Endpoint.HEAD.value, Endpoint.TAIL.value]))
+    commiss_val = list(
+        itertools.product(
+            ismrm2015_commissural_bundles,
+            [Endpoint.HEAD.value, Endpoint.TAIL.value],
+        )
+    )
 
-    proj_val = list(itertools.product(
-        ismrm2015_projection_bundles,
-        [Hemisphere.LEFT.value, Hemisphere.RIGHT.value],
-        [Endpoint.HEAD.value, Endpoint.TAIL.value]))
+    proj_val = list(
+        itertools.product(
+            ismrm2015_projection_bundles,
+            [Hemisphere.LEFT.value, Hemisphere.RIGHT.value],
+            [Endpoint.HEAD.value, Endpoint.TAIL.value],
+        )
+    )
 
-    return list(itertools.chain.from_iterable(
-        [assoc_val, commiss_val, proj_val]))
+    return list(
+        itertools.chain.from_iterable([assoc_val, commiss_val, proj_val])
+    )
 
 
 def _build_ismrm2015_surfaces():
 
     return list(
         itertools.product(
-            ismrm2015_surfaces,
-            [Hemisphere.LEFT.value, Hemisphere.RIGHT.value]))
+            ismrm2015_surfaces, [Hemisphere.LEFT.value, Hemisphere.RIGHT.value]
+        )
+    )
 
 
 def _check_fibercup_img(img):
 
-    npt.assert_equal(
-        img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(img.__class__.__name__, nib.Nifti1Image.__name__)
     npt.assert_equal(img.get_fdata().dtype, np.float64)
     npt.assert_equal(img.get_fdata().shape, (64, 64, 3))
 
 
 def _check_hcp_tr_img(img):
 
-    npt.assert_equal(
-        img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(img.__class__.__name__, nib.Nifti1Image.__name__)
     npt.assert_equal(img.get_fdata().dtype, np.float64)
     npt.assert_equal(img.get_fdata().shape, (105, 138, 111))
 
 
 def _check_ismrm2015_img(img):
 
-    npt.assert_equal(
-        img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(img.__class__.__name__, nib.Nifti1Image.__name__)
     npt.assert_equal(img.get_fdata().dtype, np.float64)
     npt.assert_equal(img.get_fdata().shape, (180, 216, 180))
 
 
 def _check_mni2009cnonlinsymm_img(img):
 
-    npt.assert_equal(
-        img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(img.__class__.__name__, nib.Nifti1Image.__name__)
     npt.assert_equal(img.get_fdata().dtype, np.float64)
     npt.assert_equal(img.get_fdata().shape, (193, 229, 193))
 
@@ -144,7 +176,7 @@ def test_make_fetcher():
     # Make a fetcher with some test data using a local server
     with TemporaryDirectory() as tmpdir:
 
-        test_data = TEST_FILES['fibercup_T1w']
+        test_data = TEST_FILES["fibercup_T1w"]
         name = "fetch_fibercup_test_data"
         remote_fnames = [op.sep + op.split(test_data)[-1]]
         local_fnames = ["fibercup_name"]
@@ -157,20 +189,28 @@ def test_make_fetcher():
 
         # Create local HTTP Server
         testfile_folder = op.split(test_data)[0] + os.sep
-        testfile_url = 'file:' + pathname2url(testfile_folder)
+        testfile_url = "file:" + pathname2url(testfile_folder)
         current_dir = os.getcwd()
         # Change pwd to directory containing testfile
         os.chdir(testfile_folder)
-        server = HTTPServer(('localhost', 8000), SimpleHTTPRequestHandler)
+        server = HTTPServer(("localhost", 8000), SimpleHTTPRequestHandler)
         server_thread = Thread(target=server.serve_forever)
         server_thread.deamon = True
         server_thread.start()
 
         # Test make_fetcher
         data_fetcher = fetcher._make_fetcher(
-            name, tmpdir, testfile_url, remote_fnames, local_fnames,
-            hash_list=[stored_hash], doc=doc, data_size=data_size, msg=msg,
-            unzip=unzip)
+            name,
+            tmpdir,
+            testfile_url,
+            remote_fnames,
+            local_fnames,
+            hash_list=[stored_hash],
+            doc=doc,
+            data_size=data_size,
+            msg=msg,
+            unzip=unzip,
+        )
 
         try:
             data_fetcher()
@@ -183,7 +223,8 @@ def test_make_fetcher():
 
         npt.assert_equal(
             fetcher._get_file_hash(op.join(tmpdir, local_fnames[0])),
-            stored_hash)
+            stored_hash,
+        )
 
         # Stop local HTTP Server
         server.shutdown()
@@ -203,29 +244,37 @@ def test_make_fetcher():
 
         stored_hash = "705396981f1bcda51de12098db968390"
 
-        rel_data_folder = pjoin("datasets", "fibercup", "raw", "sub-01",
-                                "dwi")
+        rel_data_folder = pjoin("datasets", "fibercup", "raw", "sub-01", "dwi")
 
         folder = pjoin(tmpdir, rel_data_folder)
         testfile_url = TRACTODATA_DATASETS_URL + "br4ds/"
 
         data_fetcher = fetcher._make_fetcher(
-            name, folder, testfile_url, remote_fnames, local_fnames,
-            hash_list=[stored_hash], doc=doc, data_size=data_size, msg=msg,
-            unzip=unzip)
+            name,
+            folder,
+            testfile_url,
+            remote_fnames,
+            local_fnames,
+            hash_list=[stored_hash],
+            doc=doc,
+            data_size=data_size,
+            msg=msg,
+            unzip=unzip,
+        )
 
         try:
             files, folder = data_fetcher()
         except Exception as e:
             print(e)
 
-        fnames = files['sub01-dwi.zip'][2]
+        fnames = files["sub01-dwi.zip"][2]
 
         assert [op.isfile(op.join(tmpdir, f)) for f in fnames]
 
         npt.assert_equal(
             fetcher._get_file_hash(op.join(folder, local_fnames[0])),
-            stored_hash)
+            stored_hash,
+        )
 
 
 def test_fetch_data():
@@ -233,10 +282,10 @@ def test_fetch_data():
     # Fetch some test data using a local server
     with TemporaryDirectory() as tmpdir:
 
-        test_data = TEST_FILES['fibercup_T1w']
+        test_data = TEST_FILES["fibercup_T1w"]
 
         stored_hash = fetcher._get_file_hash(test_data)
-        bad_sha = '8' * len(stored_hash)
+        bad_sha = "8" * len(stored_hash)
 
         newfile = op.join(tmpdir, "testfile.txt")
         # Test that the fetcher can get a file
@@ -247,7 +296,7 @@ def test_fetch_data():
         current_dir = os.getcwd()
         # Change pwd to directory containing testfile
         os.chdir(testfile_folder + os.sep)
-        server = HTTPServer(('localhost', 8001), SimpleHTTPRequestHandler)
+        server = HTTPServer(("localhost", 8001), SimpleHTTPRequestHandler)
         server_thread = Thread(target=server.serve_forever)
         server_thread.deamon = True
         server_thread.start()
@@ -263,7 +312,7 @@ def test_fetch_data():
         npt.assert_(op.exists(newfile))
 
         # Test that the file is replaced when the hash doesn't match
-        with open(newfile, 'a') as f:
+        with open(newfile, "a") as f:
             f.write("some text")
         try:
             fetcher.fetch_data(files, tmpdir)
@@ -278,8 +327,9 @@ def test_fetch_data():
         # Test that an error is raised when the hash of the downloaded file
         # does not match the expected value
         files = {"testfile.txt": (test_server_url, bad_sha)}
-        npt.assert_raises(fetcher.FetcherError,
-                          fetcher.fetch_data, files, tmpdir)
+        npt.assert_raises(
+            fetcher.FetcherError, fetcher.fetch_data, files, tmpdir
+        )
 
         # Stop local HTTP Server
         server.shutdown()
@@ -304,8 +354,10 @@ def test_tractodata_home():
 
     reload(fetcher)
 
-    npt.assert_string_equal(fetcher.tractodata_home,
-                            op.join(os.path.expanduser("~"), ".tractodata"))
+    npt.assert_string_equal(
+        fetcher.tractodata_home,
+        op.join(os.path.expanduser("~"), ".tractodata"),
+    )
     os.environ["TRACTODATA_HOME"] = test_path
     reload(fetcher)
     npt.assert_string_equal(fetcher.tractodata_home, test_path)
@@ -318,7 +370,8 @@ def test_tractodata_home():
 def test_list_fibercup_bundles():
 
     bundle_names = fetcher.list_bundles_in_dataset(
-        Dataset.FIBERCUP_SYNTH_BUNDLING.name)
+        Dataset.FIBERCUP_SYNTH_BUNDLING.name
+    )
 
     expected_val = len(fibercup_bundles)
     obtained_val = len(bundle_names)
@@ -334,7 +387,8 @@ def test_list_fibercup_bundles():
 def test_list_fibercup_bundle_masks():
 
     bundle_mask_names = fetcher.list_bundles_in_dataset(
-        Dataset.FIBERCUP_BUNDLE_MASKS.name)
+        Dataset.FIBERCUP_BUNDLE_MASKS.name
+    )
 
     expected_val = len(fibercup_bundles)
     obtained_val = len(bundle_mask_names)
@@ -350,17 +404,20 @@ def test_list_fibercup_bundle_masks():
 def test_list_fibercup_bundle_endpoint_masks():
 
     bundle_endpoint_masks = fetcher.list_bundle_endpoint_masks_in_dataset(
-        Dataset.FIBERCUP_BUNDLE_ENDPOINT_MASKS.name)
+        Dataset.FIBERCUP_BUNDLE_ENDPOINT_MASKS.name
+    )
 
-    expected_val = len(fibercup_bundles)*2
+    expected_val = len(fibercup_bundles) * 2
     obtained_val = len(bundle_endpoint_masks)
 
     assert expected_val == obtained_val
 
     expected_val = _build_fibercup_bundle_endpoints()
 
-    expected_val = [fetcher._build_bundle_endpoint_key(elem[0], elem[1])
-                    for elem in expected_val]
+    expected_val = [
+        fetcher._build_bundle_endpoint_key(elem[0], elem[1])
+        for elem in expected_val
+    ]
     obtained_val = bundle_endpoint_masks
 
     npt.assert_equal(expected_val, obtained_val)
@@ -369,7 +426,8 @@ def test_list_fibercup_bundle_endpoint_masks():
 def test_list_fibercup_tissue_maps():
 
     tissue_names = fetcher.list_tissue_maps_in_dataset(
-        Dataset.FIBERCUP_TISSUE_MAPS.name)
+        Dataset.FIBERCUP_TISSUE_MAPS.name
+    )
 
     expected_val = fibercup_tissues
     obtained_val = tissue_names
@@ -379,7 +437,8 @@ def test_list_fibercup_tissue_maps():
 def test_list_ismrm2015_bundles():
 
     bundle_names = fetcher.list_bundles_in_dataset(
-        Dataset.ISMRM2015_SYNTH_BUNDLING.name)
+        Dataset.ISMRM2015_SYNTH_BUNDLING.name
+    )
 
     expected_val = 25
     obtained_val = len(bundle_names)
@@ -405,7 +464,8 @@ def test_list_ismrm2015_bundles():
 def test_list_ismrm2015_bundle_masks():
 
     bundle_masks = fetcher.list_bundles_in_dataset(
-        Dataset.ISMRM2015_BUNDLE_MASKS.name)
+        Dataset.ISMRM2015_BUNDLE_MASKS.name
+    )
 
     expected_val = 25
     obtained_val = len(bundle_masks)
@@ -431,9 +491,10 @@ def test_list_ismrm2015_bundle_masks():
 def test_list_ismrm2015_bundle_endpoint_masks():
 
     bundle_endpoint_masks = fetcher.list_bundle_endpoint_masks_in_dataset(
-        Dataset.ISMRM2015_BUNDLE_ENDPOINT_MASKS.name)
+        Dataset.ISMRM2015_BUNDLE_ENDPOINT_MASKS.name
+    )
 
-    expected_val = 25*2
+    expected_val = 25 * 2
     obtained_val = len(bundle_endpoint_masks)
     assert expected_val == obtained_val
 
@@ -445,7 +506,8 @@ def test_list_ismrm2015_bundle_endpoint_masks():
             _name = fetcher._build_bundle_endpoint_key(elem[0], elem[1])
         else:
             _name = fetcher._build_bundle_endpoint_key(
-                elem[0], elem[2], hemisphere=elem[1])
+                elem[0], elem[2], hemisphere=elem[1]
+            )
 
         expected_val.append(_name)
 
@@ -458,7 +520,8 @@ def test_list_ismrm2015_bundle_endpoint_masks():
 def test_list_ismrm2015_tissue_maps():
 
     tissue_names = fetcher.list_tissue_maps_in_dataset(
-        Dataset.ISMRM2015_TISSUE_MAPS.name)
+        Dataset.ISMRM2015_TISSUE_MAPS.name
+    )
 
     expected_val = ismrm2015_tissues
     obtained_val = tissue_names
@@ -468,11 +531,13 @@ def test_list_ismrm2015_tissue_maps():
 def test_list_ismrm2015_surfaces():
 
     surface_names = fetcher.list_surfaces_in_dataset(
-        Dataset.ISMRM2015_SURFACES.name)
+        Dataset.ISMRM2015_SURFACES.name
+    )
 
     expected_val = _build_ismrm2015_surfaces()
-    expected_val = [fetcher._build_surface_key(elem[0], elem[1])
-                    for elem in expected_val]
+    expected_val = [
+        fetcher._build_surface_key(elem[0], elem[1]) for elem in expected_val
+    ]
     obtained_val = surface_names
 
     assert expected_val == obtained_val
@@ -501,7 +566,8 @@ def test_read_fibercup_dwi():
     expected_val = (0, 1000)
 
     assert np.logical_and(
-        gtab.bvals >= expected_val[0], gtab.bvals <= expected_val[-1]).all()
+        gtab.bvals >= expected_val[0], gtab.bvals <= expected_val[-1]
+    ).all()
 
     expected_val = 31
     obtained_val = len(gtab.bvecs)
@@ -512,7 +578,8 @@ def test_read_fibercup_dwi():
 def test_read_fibercup_tissue_maps():
 
     wm_img = fetcher.read_dataset_tissue_maps(
-        Dataset.FIBERCUP_TISSUE_MAPS.name)[Tissue.WM.value]
+        Dataset.FIBERCUP_TISSUE_MAPS.name
+    )[Tissue.WM.value]
 
     _check_fibercup_img(wm_img)
 
@@ -520,7 +587,8 @@ def test_read_fibercup_tissue_maps():
 def test_read_fibercup_synth_tracking():
 
     sft = fetcher.read_dataset_tracking(
-        Dataset.FIBERCUP_ANAT.name, Dataset.FIBERCUP_SYNTH_TRACKING.name)
+        Dataset.FIBERCUP_ANAT.name, Dataset.FIBERCUP_SYNTH_TRACKING.name
+    )
 
     npt.assert_equal(sft.__class__.__name__, StatefulTractogram.__name__)
 
@@ -543,7 +611,8 @@ def test_read_fibercup_synth_bundling():
     assert expected_val == obtained_val
 
     npt.assert_equal(
-        bundles["bundle4"].__class__.__name__, StatefulTractogram.__name__)
+        bundles["bundle4"].__class__.__name__, StatefulTractogram.__name__
+    )
 
     expected_val = 1413
     obtained_val = len(bundles["bundle4"])
@@ -551,7 +620,8 @@ def test_read_fibercup_synth_bundling():
 
     bundle_name = ["bundle5"]
     bundles = fetcher.read_dataset_bundling(
-        anat_name, bundling_name, bundle_name=bundle_name)
+        anat_name, bundling_name, bundle_name=bundle_name
+    )
 
     expected_val = 683
     obtained_val = len(bundles[bundle_name[0]])
@@ -559,7 +629,8 @@ def test_read_fibercup_synth_bundling():
 
     bundle_name = ["bundle4", "bundle5"]
     bundles = fetcher.read_dataset_bundling(
-        anat_name, bundling_name, bundle_name=bundle_name)
+        anat_name, bundling_name, bundle_name=bundle_name
+    )
 
     expected_val = 1413
     obtained_val = len(bundles[bundle_name[0]])
@@ -583,9 +654,10 @@ def test_read_fibercup_synth_bundle_centroids():
     assert expected_val == obtained_val
 
     npt.assert_equal(
-        centroids["bundle6"].__class__.__name__, StatefulTractogram.__name__)
+        centroids["bundle6"].__class__.__name__, StatefulTractogram.__name__
+    )
 
-    expected_val = [1]*len(centroids)
+    expected_val = [1] * len(centroids)
     obtained_val = [len(centroid) for key, centroid in centroids.items()]
 
     assert expected_val == obtained_val
@@ -608,7 +680,8 @@ def test_read_fibercup_bundle_masks():
 
     bundle_name = ["bundle1"]
     bundle_masks = fetcher.read_dataset_bundle_masks(
-        name, bundle_name=bundle_name)
+        name, bundle_name=bundle_name
+    )
 
     mask_img = bundle_masks[bundle_name[0]]
 
@@ -616,7 +689,8 @@ def test_read_fibercup_bundle_masks():
 
     bundle_name = ["bundle1", "bundle7"]
     bundle_masks = fetcher.read_dataset_bundle_masks(
-        name, bundle_name=bundle_name)
+        name, bundle_name=bundle_name
+    )
 
     for name in bundle_name:
         mask_img = bundle_masks[name]
@@ -630,7 +704,7 @@ def test_read_fibercup_bundle_endpoint_masks():
 
     bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(name)
 
-    expected_val = len(fibercup_bundles)*2
+    expected_val = len(fibercup_bundles) * 2
     obtained_val = len(bundle_endpoint_masks)
 
     assert expected_val == obtained_val
@@ -641,7 +715,8 @@ def test_read_fibercup_bundle_endpoint_masks():
 
     bundle_name = ["bundle3"]
     bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
-        name, bundle_name=bundle_name)
+        name, bundle_name=bundle_name
+    )
 
     expected_val = 2
     obtained_val = len(bundle_endpoint_masks)
@@ -649,16 +724,18 @@ def test_read_fibercup_bundle_endpoint_masks():
     assert expected_val == obtained_val
 
     _name = fetcher._build_bundle_endpoint_key(
-        bundle_name[0], Endpoint.HEAD.value)
+        bundle_name[0], Endpoint.HEAD.value
+    )
     mask_endpoint_img = bundle_endpoint_masks[_name]
 
     _check_fibercup_img(mask_endpoint_img)
 
     bundle_name = ["bundle3", "bundle4", "bundle6"]
     bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
-        name, bundle_name=bundle_name)
+        name, bundle_name=bundle_name
+    )
 
-    expected_val = len(bundle_name*2)
+    expected_val = len(bundle_name * 2)
     obtained_val = len(bundle_endpoint_masks)
 
     assert expected_val == obtained_val
@@ -673,7 +750,8 @@ def test_read_fibercup_bundle_endpoint_masks():
     bundle_name = ["bundle3"]
     endpoint_name = Endpoint.HEAD.value
     bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
-        name, bundle_name=bundle_name, endpoint_name=endpoint_name)
+        name, bundle_name=bundle_name, endpoint_name=endpoint_name
+    )
 
     expected_val = 1
     obtained_val = len(bundle_endpoint_masks)
@@ -687,7 +765,8 @@ def test_read_fibercup_bundle_endpoint_masks():
 
     bundle_name = ["bundle3", "bundle4", "bundle6"]
     bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
-        name, bundle_name=bundle_name, endpoint_name=endpoint_name)
+        name, bundle_name=bundle_name, endpoint_name=endpoint_name
+    )
 
     expected_val = len(bundle_name)
     obtained_val = len(bundle_endpoint_masks)
@@ -704,7 +783,8 @@ def test_read_fibercup_bundle_endpoint_masks():
 def test_read_fibercup_diffusion_peaks():
 
     peaks = fetcher.read_dataset_diffusion_peaks(
-        Dataset.FIBERCUP_DIFFUSION_PEAKS.name)
+        Dataset.FIBERCUP_DIFFUSION_PEAKS.name
+    )
 
     expected_val = (64, 64, 3, 15)
     obtained_val = peaks.shape
@@ -715,7 +795,8 @@ def test_read_fibercup_diffusion_peaks():
 def test_read_fibercup_local_prob_tracking():
 
     sft = fetcher.read_dataset_tracking(
-        Dataset.FIBERCUP_ANAT.name, Dataset.FIBERCUP_LOCAL_PROB_TRACKING.name)
+        Dataset.FIBERCUP_ANAT.name, Dataset.FIBERCUP_LOCAL_PROB_TRACKING.name
+    )
 
     npt.assert_equal(sft.__class__.__name__, StatefulTractogram.__name__)
 
@@ -728,7 +809,8 @@ def test_read_fibercup_local_prob_tracking():
 def test_read_fibercup_local_prob_bundling():
 
     bundles = fetcher.read_dataset_bundling(
-        Dataset.FIBERCUP_ANAT.name, Dataset.FIBERCUP_LOCAL_PROB_BUNDLING.name)
+        Dataset.FIBERCUP_ANAT.name, Dataset.FIBERCUP_LOCAL_PROB_BUNDLING.name
+    )
 
     expected_val = 1
     obtained_val = len(bundles)
@@ -739,14 +821,17 @@ def test_read_fibercup_local_prob_bundling():
     assert expected_val == obtained_val
 
     npt.assert_equal(
-        bundles["bundle3"].__class__.__name__, StatefulTractogram.__name__)
+        bundles["bundle3"].__class__.__name__, StatefulTractogram.__name__
+    )
 
 
 def test_read_fibercup_tracking_evaluation_config():
 
-    tracking_evaluation_config = \
+    tracking_evaluation_config = (
         fetcher.read_dataset_tracking_evaluation_config(
-            Dataset.FIBERCUP_TRACKING_EVALUATION_CONFIG.name)
+            Dataset.FIBERCUP_TRACKING_EVALUATION_CONFIG.name
+        )
+    )
 
     expected_val = len(fibercup_bundles)
     obtained_val = len(tracking_evaluation_config)
@@ -775,11 +860,15 @@ def test_read_hcp_tr_surfaces():
     surface_type = ["pial"]
     hemisphere_name = "L"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.HCP_TR_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.HCP_TR_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = 81920
     obtained_val = surface[_name].get_nb_triangles()
@@ -791,11 +880,15 @@ def test_read_hcp_tr_surfaces():
 
     hemisphere_name = "R"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.HCP_TR_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.HCP_TR_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = 81920
     obtained_val = surface[_name].get_nb_triangles()
@@ -809,11 +902,15 @@ def test_read_hcp_tr_surfaces():
     as_polydata = True
     hemisphere_name = "L"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.HCP_TR_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.HCP_TR_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = (81920, 3)
     obtained_val = vtk_u.get_polydata_triangles(surface[_name]).shape
@@ -827,7 +924,8 @@ def test_read_hcp_tr_surfaces():
 def test_read_hcp_tr_pft_tracking():
 
     sft = fetcher.read_dataset_tracking(
-        Dataset.HCP_TR_ANAT.name, Dataset.HCP_TR_PFT_TRACKING.name)
+        Dataset.HCP_TR_ANAT.name, Dataset.HCP_TR_PFT_TRACKING.name
+    )
 
     npt.assert_equal(sft.__class__.__name__, StatefulTractogram.__name__)
 
@@ -860,7 +958,8 @@ def test_read_ismrm2015_dwi():
     expected_val = (0, 1000)
 
     assert np.logical_and(
-        gtab.bvals >= expected_val[0], gtab.bvals <= expected_val[-1]).all()
+        gtab.bvals >= expected_val[0], gtab.bvals <= expected_val[-1]
+    ).all()
 
     expected_val = 33
     obtained_val = len(gtab.bvecs)
@@ -871,7 +970,8 @@ def test_read_ismrm2015_dwi():
 def test_read_ismrm2015_tissue_maps():
 
     wm_img = fetcher.read_dataset_tissue_maps(
-        Dataset.ISMRM2015_TISSUE_MAPS.name)[Tissue.WM.value]
+        Dataset.ISMRM2015_TISSUE_MAPS.name
+    )[Tissue.WM.value]
 
     _check_ismrm2015_img(wm_img)
 
@@ -888,11 +988,15 @@ def test_read_ismrm2015_surfaces():
     surface_type = ["pial"]
     hemisphere_name = "L"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.ISMRM2015_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.ISMRM2015_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = 138822
     obtained_val = surface[_name].get_nb_triangles()
@@ -904,11 +1008,15 @@ def test_read_ismrm2015_surfaces():
 
     hemisphere_name = "R"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.ISMRM2015_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.ISMRM2015_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = 140448
     obtained_val = surface[_name].get_nb_triangles()
@@ -921,11 +1029,15 @@ def test_read_ismrm2015_surfaces():
     as_polydata = True
     hemisphere_name = "L"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.ISMRM2015_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.ISMRM2015_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = (138822, 3)
     obtained_val = vtk_u.get_polydata_triangles(surface[_name]).shape
@@ -937,11 +1049,15 @@ def test_read_ismrm2015_surfaces():
 
     hemisphere_name = "R"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.ISMRM2015_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.ISMRM2015_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = (140448, 3)
     obtained_val = vtk_u.get_polydata_triangles(surface[_name]).shape
@@ -955,7 +1071,8 @@ def test_read_ismrm2015_surfaces():
 def test_read_ismrm2015_synth_tracking():
 
     sft = fetcher.read_dataset_tracking(
-        Dataset.ISMRM2015_ANAT.name, Dataset.ISMRM2015_SYNTH_TRACKING.name)
+        Dataset.ISMRM2015_ANAT.name, Dataset.ISMRM2015_SYNTH_TRACKING.name
+    )
 
     npt.assert_equal(sft.__class__.__name__, StatefulTractogram.__name__)
 
@@ -978,7 +1095,8 @@ def test_read_ismrm2015_synth_bundling():
     assert expected_val == obtained_val
 
     npt.assert_equal(
-        bundles["CC"].__class__.__name__, StatefulTractogram.__name__)
+        bundles["CC"].__class__.__name__, StatefulTractogram.__name__
+    )
 
     expected_val = 17993
     obtained_val = len(bundles["CC"])
@@ -987,11 +1105,15 @@ def test_read_ismrm2015_synth_bundling():
     bundle_name = ["CST"]
     hemisphere_name = "L"
     bundles = fetcher.read_dataset_bundling(
-        anat_name, bundling_name, bundle_name=bundle_name,
-        hemisphere_name=hemisphere_name)
+        anat_name,
+        bundling_name,
+        bundle_name=bundle_name,
+        hemisphere_name=hemisphere_name,
+    )
 
     _name = fetcher._build_bundle_key(
-        bundle_name[0], hemisphere=hemisphere_name)
+        bundle_name[0], hemisphere=hemisphere_name
+    )
 
     expected_val = 7217
     obtained_val = len(bundles[_name])
@@ -999,17 +1121,20 @@ def test_read_ismrm2015_synth_bundling():
 
     bundle_name = ["CST"]
     bundles = fetcher.read_dataset_bundling(
-        anat_name, bundling_name, bundle_name=bundle_name)
+        anat_name, bundling_name, bundle_name=bundle_name
+    )
 
     _name = fetcher._build_bundle_key(
-        bundle_name[0], hemisphere=Hemisphere.LEFT.value)
+        bundle_name[0], hemisphere=Hemisphere.LEFT.value
+    )
 
     expected_val = 7217
     obtained_val = len(bundles[_name])
     assert expected_val == obtained_val
 
     _name = fetcher._build_bundle_key(
-        bundle_name[0], hemisphere=Hemisphere.RIGHT.value)
+        bundle_name[0], hemisphere=Hemisphere.RIGHT.value
+    )
 
     expected_val = 10232
     obtained_val = len(bundles[_name])
@@ -1017,7 +1142,8 @@ def test_read_ismrm2015_synth_bundling():
 
     bundle_name = ["CC", "Fornix"]
     bundles = fetcher.read_dataset_bundling(
-        anat_name, bundling_name, bundle_name=bundle_name)
+        anat_name, bundling_name, bundle_name=bundle_name
+    )
 
     expected_val = 17993
     obtained_val = len(bundles[bundle_name[0]])
@@ -1029,21 +1155,24 @@ def test_read_ismrm2015_synth_bundling():
 
     bundle_name = ["CA", "Cing"]
     bundles = fetcher.read_dataset_bundling(
-        anat_name, bundling_name, bundle_name=bundle_name)
+        anat_name, bundling_name, bundle_name=bundle_name
+    )
 
     expected_val = 431
     obtained_val = len(bundles[bundle_name[0]])
     assert expected_val == obtained_val
 
     _name = fetcher._build_bundle_key(
-        bundle_name[-1], hemisphere=Hemisphere.LEFT.value)
+        bundle_name[-1], hemisphere=Hemisphere.LEFT.value
+    )
 
     expected_val = 14343
     obtained_val = len(bundles[_name])
     assert expected_val == obtained_val
 
     _name = fetcher._build_bundle_key(
-        bundle_name[-1], hemisphere=Hemisphere.RIGHT.value)
+        bundle_name[-1], hemisphere=Hemisphere.RIGHT.value
+    )
 
     expected_val = 20807
     obtained_val = len(bundles[_name])
@@ -1052,8 +1181,11 @@ def test_read_ismrm2015_synth_bundling():
     bundle_name = ["MCP", "SLF"]
     hemisphere_name = "L"
     bundles = fetcher.read_dataset_bundling(
-        anat_name, bundling_name, bundle_name=bundle_name,
-        hemisphere_name=hemisphere_name)
+        anat_name,
+        bundling_name,
+        bundle_name=bundle_name,
+        hemisphere_name=hemisphere_name,
+    )
 
     assert bundle_name[0] not in bundles.keys()
 
@@ -1062,7 +1194,8 @@ def test_read_ismrm2015_synth_bundling():
     assert expected_val == obtained_val
 
     _name = fetcher._build_bundle_key(
-        bundle_name[-1], hemisphere=hemisphere_name)
+        bundle_name[-1], hemisphere=hemisphere_name
+    )
 
     expected_val = 12497
     obtained_val = len(bundles[_name])
@@ -1086,17 +1219,20 @@ def test_read_ismrm2015_bundle_masks():
 
     bundle_name = ["CST"]
     bundle_masks = fetcher.read_dataset_bundle_masks(
-        name, bundle_name=bundle_name)
+        name, bundle_name=bundle_name
+    )
 
     _name = fetcher._build_bundle_key(
-        bundle_name[0], hemisphere=Hemisphere.LEFT.value)
+        bundle_name[0], hemisphere=Hemisphere.LEFT.value
+    )
     mask_img = bundle_masks[_name]
 
     _check_ismrm2015_img(mask_img)
 
     bundle_name = ["CST", "Fornix"]
     bundle_masks = fetcher.read_dataset_bundle_masks(
-        name, bundle_name=bundle_name)
+        name, bundle_name=bundle_name
+    )
 
     expected_val = 3
     obtained_val = len(bundle_masks)
@@ -1107,7 +1243,8 @@ def test_read_ismrm2015_bundle_masks():
     _check_ismrm2015_img(mask_img)
 
     _name = fetcher._build_bundle_key(
-        bundle_name[0], hemisphere=Hemisphere.RIGHT.value)
+        bundle_name[0], hemisphere=Hemisphere.RIGHT.value
+    )
     mask_img = bundle_masks[_name]
 
     _check_ismrm2015_img(mask_img)
@@ -1115,7 +1252,8 @@ def test_read_ismrm2015_bundle_masks():
     bundle_name = ["CP", "CST"]
     hemisphere_name = Hemisphere.RIGHT.value
     bundle_masks = fetcher.read_dataset_bundle_masks(
-        name, bundle_name=bundle_name, hemisphere_name=hemisphere_name)
+        name, bundle_name=bundle_name, hemisphere_name=hemisphere_name
+    )
 
     assert bundle_name[0] not in bundle_masks.keys()
 
@@ -1124,7 +1262,8 @@ def test_read_ismrm2015_bundle_masks():
     assert expected_val == obtained_val
 
     _name = fetcher._build_bundle_key(
-        bundle_name[-1], hemisphere=hemisphere_name)
+        bundle_name[-1], hemisphere=hemisphere_name
+    )
     mask_img = bundle_masks[_name]
 
     _check_ismrm2015_img(mask_img)
@@ -1147,7 +1286,8 @@ def test_read_ismrm2015_bundle_endpoint_masks():
 
     bundle_name = ["CST"]
     bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
-        name, bundle_name=bundle_name)
+        name, bundle_name=bundle_name
+    )
 
     expected_val = 4
     obtained_val = len(bundle_endpoint_masks)
@@ -1155,7 +1295,8 @@ def test_read_ismrm2015_bundle_endpoint_masks():
     assert expected_val == obtained_val
 
     _name = fetcher._build_bundle_endpoint_key(
-        bundle_name[0], Endpoint.HEAD.value, hemisphere=Hemisphere.LEFT.value)
+        bundle_name[0], Endpoint.HEAD.value, hemisphere=Hemisphere.LEFT.value
+    )
     mask_endpoint_img = bundle_endpoint_masks[_name]
 
     _check_ismrm2015_img(mask_endpoint_img)
@@ -1163,7 +1304,8 @@ def test_read_ismrm2015_bundle_endpoint_masks():
     bundle_name = ["OR"]
     endpoint_name = Endpoint.HEAD.value
     bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
-        name, bundle_name=bundle_name, endpoint_name=endpoint_name)
+        name, bundle_name=bundle_name, endpoint_name=endpoint_name
+    )
 
     expected_val = 2
     obtained_val = len(bundle_endpoint_masks)
@@ -1171,14 +1313,16 @@ def test_read_ismrm2015_bundle_endpoint_masks():
     assert expected_val == obtained_val
 
     _name = fetcher._build_bundle_endpoint_key(
-        bundle_name[0], endpoint_name, hemisphere=Hemisphere.LEFT.value)
+        bundle_name[0], endpoint_name, hemisphere=Hemisphere.LEFT.value
+    )
     mask_endpoint_img = bundle_endpoint_masks[_name]
 
     _check_ismrm2015_img(mask_endpoint_img)
 
     bundle_name = ["CA", "CC", "Fornix", "MCP"]
     bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
-        name, bundle_name=bundle_name, endpoint_name=endpoint_name)
+        name, bundle_name=bundle_name, endpoint_name=endpoint_name
+    )
 
     expected_val = len(bundle_name)
     obtained_val = len(bundle_endpoint_masks)
@@ -1194,8 +1338,11 @@ def test_read_ismrm2015_bundle_endpoint_masks():
     bundle_name = ["ICP", "SCP"]
     hemisphere_name = "R"
     bundle_endpoint_masks = fetcher.read_dataset_bundle_endpoint_masks(
-        name, bundle_name=bundle_name, hemisphere_name=hemisphere_name,
-        endpoint_name=endpoint_name)
+        name,
+        bundle_name=bundle_name,
+        hemisphere_name=hemisphere_name,
+        endpoint_name=endpoint_name,
+    )
 
     expected_val = 2
     obtained_val = len(bundle_endpoint_masks)
@@ -1204,7 +1351,8 @@ def test_read_ismrm2015_bundle_endpoint_masks():
 
     for bname in bundle_name:
         _name = fetcher._build_bundle_endpoint_key(
-            bname, endpoint_name, hemisphere=hemisphere_name)
+            bname, endpoint_name, hemisphere=hemisphere_name
+        )
         mask_endpoint_img = bundle_endpoint_masks[_name]
 
         _check_ismrm2015_img(mask_endpoint_img)
@@ -1216,7 +1364,8 @@ def test_get_ismrm2015_submission_id_from_filenames():
         "/path/to/ismrm2015_tractography_challenge_submission1-0_angular_error_results.csv",  # noqa E501
         "/path/to/ismrm2015_tractography_challenge_submission1-1_angular_error_results.csv",  # noqa E501
         "/path/to/ismrm2015_tractography_challenge_submission1-2_angular_error_results.csv",  # noqa E501
-        "/path/to/ismrm2015_tractography_challenge_submission2-1_angular_error_results.csv"]  # noqa E501
+        "/path/to/ismrm2015_tractography_challenge_submission2-1_angular_error_results.csv",
+    ]  # noqa E501
     expected_val = ["1-0", "1-1", "1-2", "2-1"]
     obtained_val = fetcher._get_ismrm2015_submission_id_from_filenames(fnames)
 
@@ -1225,13 +1374,23 @@ def test_get_ismrm2015_submission_id_from_filenames():
 
 def test_classify_ismrm2015_submissions_results_files():
 
-    overall_scores_fname, angular_error_score_fnames, bundle_score_fnames = \
-        fetcher._classify_ismrm2015_submissions_results_files()
+    (
+        overall_scores_fname,
+        angular_error_score_fnames,
+        bundle_score_fnames,
+    ) = fetcher._classify_ismrm2015_submissions_results_files()
 
     expected_val = pjoin(
-        fetcher.tractodata_home, "datasets", "ismrm2015", "derivatives",
-        "submission", "synth", "sub-02", "dwi",
-        "ismrm2015_tractography_challenge_overall_results.csv")
+        fetcher.tractodata_home,
+        "datasets",
+        "ismrm2015",
+        "derivatives",
+        "submission",
+        "synth",
+        "sub-02",
+        "dwi",
+        "ismrm2015_tractography_challenge_overall_results.csv",
+    )
     obtained_val = overall_scores_fname
 
     assert expected_val == obtained_val
@@ -1263,7 +1422,8 @@ def test_read_ismrm2015_submissions_overall_performance_data():
 
     score = ["IB"]
     df = fetcher.read_ismrm2015_submissions_overall_performance_data(
-        score=score)
+        score=score
+    )
 
     expected_val = 96
     obtained_val = len(df.index)
@@ -1280,7 +1440,7 @@ def test_read_ismrm2015_submissions_angular_performance_data():
 
     df = fetcher.read_ismrm2015_submissions_angular_performance_data()
 
-    expected_val = 96*3
+    expected_val = 96 * 3
     obtained_val = len(df.index)
 
     assert expected_val == obtained_val
@@ -1292,9 +1452,10 @@ def test_read_ismrm2015_submissions_angular_performance_data():
 
     score = ["Median"]
     df = fetcher.read_ismrm2015_submissions_angular_performance_data(
-        score=score)
+        score=score
+    )
 
-    expected_val = 96*3
+    expected_val = 96 * 3
     obtained_val = len(df.index)
 
     assert expected_val == obtained_val
@@ -1320,7 +1481,8 @@ def test_read_ismrm2015_submissions_angular_performance_data():
     score = ["Standard deviation"]
     roi = ["Voxels with single fiber population"]
     df = fetcher.read_ismrm2015_submissions_angular_performance_data(
-        score=score, roi=roi)
+        score=score, roi=roi
+    )
 
     expected_val = 96
     obtained_val = len(df.index)
@@ -1337,7 +1499,7 @@ def test_read_ismrm2015_submissions_bundle_performance_data():
 
     df = fetcher.read_ismrm2015_submissions_bundle_performance_data()
 
-    expected_val = 96*25
+    expected_val = 96 * 25
     obtained_val = len(df.index)
 
     assert expected_val == obtained_val
@@ -1349,9 +1511,10 @@ def test_read_ismrm2015_submissions_bundle_performance_data():
 
     score = ["Overlap (% of GT)"]
     df = fetcher.read_ismrm2015_submissions_bundle_performance_data(
-        score=score)
+        score=score
+    )
 
-    expected_val = 96*25
+    expected_val = 96 * 25
     obtained_val = len(df.index)
 
     assert expected_val == obtained_val
@@ -1363,7 +1526,8 @@ def test_read_ismrm2015_submissions_bundle_performance_data():
 
     bundle_name = ["Cingulum (right)"]
     df = fetcher.read_ismrm2015_submissions_bundle_performance_data(
-        bundle_name=bundle_name)
+        bundle_name=bundle_name
+    )
 
     expected_val = 96
     obtained_val = len(df.index)
@@ -1378,7 +1542,8 @@ def test_read_ismrm2015_submissions_bundle_performance_data():
     score = ["Count"]
     bundle_name = ["Uncinate Fasciculus (right)"]
     df = fetcher.read_ismrm2015_submissions_bundle_performance_data(
-        score=score, bundle_name=bundle_name)
+        score=score, bundle_name=bundle_name
+    )
 
     expected_val = 96
     obtained_val = len(df.index)
@@ -1393,9 +1558,11 @@ def test_read_ismrm2015_submissions_bundle_performance_data():
 
 def test_read_ismrm2015_tracking_evaluation_config():
 
-    tracking_evaluation_config = \
+    tracking_evaluation_config = (
         fetcher.read_dataset_tracking_evaluation_config(
-            Dataset.ISMRM2015_TRACKING_EVALUATION_CONFIG.name)
+            Dataset.ISMRM2015_TRACKING_EVALUATION_CONFIG.name
+        )
+    )
 
     expected_val = 25
     obtained_val = len(tracking_evaluation_config)
@@ -1415,7 +1582,8 @@ def test_read_mni2009cnonlinsymm_anat():
 def test_read_mni2009cnonlinsymm_surfaces():
 
     surfaces = fetcher.read_dataset_surfaces(
-        Dataset.MNI2009CNONLINSYMM_SURFACES.name)
+        Dataset.MNI2009CNONLINSYMM_SURFACES.name
+    )
 
     expected_val = 2
     obtained_val = len(surfaces)
@@ -1425,11 +1593,15 @@ def test_read_mni2009cnonlinsymm_surfaces():
     surface_type = ["pial"]
     hemisphere_name = "L"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.MNI2009CNONLINSYMM_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.MNI2009CNONLINSYMM_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = 308894
     obtained_val = surface[_name].get_nb_triangles()
@@ -1441,11 +1613,15 @@ def test_read_mni2009cnonlinsymm_surfaces():
 
     hemisphere_name = "R"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.MNI2009CNONLINSYMM_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.MNI2009CNONLINSYMM_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = 309130
     obtained_val = surface[_name].get_nb_triangles()
@@ -1458,11 +1634,15 @@ def test_read_mni2009cnonlinsymm_surfaces():
     as_polydata = True
     hemisphere_name = "L"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.MNI2009CNONLINSYMM_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.MNI2009CNONLINSYMM_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = (308894, 3)
     obtained_val = vtk_u.get_polydata_triangles(surface[_name]).shape
@@ -1474,11 +1654,15 @@ def test_read_mni2009cnonlinsymm_surfaces():
 
     hemisphere_name = "R"
     surface = fetcher.read_dataset_surfaces(
-        Dataset.MNI2009CNONLINSYMM_SURFACES.name, surface_type=surface_type,
-        hemisphere_name=hemisphere_name, as_polydata=as_polydata)
+        Dataset.MNI2009CNONLINSYMM_SURFACES.name,
+        surface_type=surface_type,
+        hemisphere_name=hemisphere_name,
+        as_polydata=as_polydata,
+    )
 
     _name = fetcher._build_surface_key(
-        surface_type[0], hemisphere=hemisphere_name)
+        surface_type[0], hemisphere=hemisphere_name
+    )
 
     expected_val = (309130, 3)
     obtained_val = vtk_u.get_polydata_triangles(surface[_name]).shape
