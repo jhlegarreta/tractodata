@@ -14,7 +14,6 @@ from setuptools import find_packages, setup
 # import glob
 
 
-
 # Read package information
 info = read_vars_from(pjoin("tractodata", "info.py"))
 
@@ -32,9 +31,11 @@ setup(
     long_description=long_description,
     long_description_content_type="text/x-rst",
     url=info.URL,
-    project_urls={"Bug tracker": info.BUG_TRACKER,
-                  "Documentation": info.DOCUMENTATION,
-                  "Source code": info.SOURCE_CODE},
+    project_urls={
+        "Bug tracker": info.BUG_TRACKER,
+        "Documentation": info.DOCUMENTATION,
+        "Source code": info.SOURCE_CODE,
+    },
     license=info.LICENSE,
     author=info.AUTHOR,
     author_email=info.AUTHOR_EMAIL,
@@ -47,5 +48,5 @@ setup(
     requires=info.REQUIRES,
     package_data={},
     data_files=[],
-    entry_points={}
+    entry_points={},
 )

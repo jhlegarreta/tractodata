@@ -53,7 +53,7 @@ def _build_bundle_regex():
     Bundle regex.
     """
 
-    return '(?<=_' + bundle_label + label_value_separator + ')(.*?)(?=_)'
+    return "(?<=_" + bundle_label + label_value_separator + ")(.*?)(?=_)"
 
 
 def _build_endpoint_regex():
@@ -64,8 +64,16 @@ def _build_endpoint_regex():
     Bundle mask endpoint regex.
     """
 
-    return '(?<=_' + endpoint_label + label_value_separator + ')(' + \
-           Endpoint.HEAD.value + '|' + Endpoint.TAIL.value + ')(?=_)'
+    return (
+        "(?<=_"
+        + endpoint_label
+        + label_value_separator
+        + ")("
+        + Endpoint.HEAD.value
+        + "|"
+        + Endpoint.TAIL.value
+        + ")(?=_)"
+    )
 
 
 def _build_hemisphere_regex():
@@ -76,8 +84,15 @@ def _build_hemisphere_regex():
     Hemisphere regex.
     """
 
-    return '(?<=_' + hemisphere_label + label_value_separator + ')[' + \
-           Hemisphere.LEFT.value + Hemisphere.RIGHT.value + ']{1}(?=_)'
+    return (
+        "(?<=_"
+        + hemisphere_label
+        + label_value_separator
+        + ")["
+        + Hemisphere.LEFT.value
+        + Hemisphere.RIGHT.value
+        + "]{1}(?=_)"
+    )
 
 
 def _build_surface_regex():
@@ -88,8 +103,15 @@ def _build_surface_regex():
     Surface regex.
     """
 
-    return '(?<=_)' + Surface.PIAL.value + '|' + Surface.WM.value + '(?=.' + \
-           surface_label + ')'
+    return (
+        "(?<=_)"
+        + Surface.PIAL.value
+        + "|"
+        + Surface.WM.value
+        + "(?=."
+        + surface_label
+        + ")"
+    )
 
 
 def _build_tissue_segmentation_regex():
@@ -100,8 +122,16 @@ def _build_tissue_segmentation_regex():
     Tissue segmentation regex.
     """
 
-    return '(?<=_' + general_label + label_value_separator + ')' + \
-           Tissue.WM.value + '(?=_' + discrete_segmentation_label + ')'
+    return (
+        "(?<=_"
+        + general_label
+        + label_value_separator
+        + ")"
+        + Tissue.WM.value
+        + "(?=_"
+        + discrete_segmentation_label
+        + ")"
+    )
 
 
 def _get_filename_root(fname, has_period=False):
@@ -126,7 +156,7 @@ def _get_filename_root(fname, has_period=False):
     if has_period:
         file_rootname = os.path.splitext(os.path.basename(fname))[0]
     else:
-        file_rootname = os.path.basename(fname).split('.')[0]
+        file_rootname = os.path.basename(fname).split(".")[0]
 
     return file_rootname
 
@@ -141,7 +171,8 @@ def _unknown_label_msg(label):
     """
 
     msg = "Unknown label.\nProvided: {}; Available: {}".format(
-        label, Label.__members__.values())
+        label, Label.__members__.values()
+    )
     return msg
 
 
@@ -189,8 +220,7 @@ def get_label_value_from_filename(fname, label, has_period=False):
     return label_value
 
 
-def _build_label_value_pair(
-        label, value, use_alt=False):
+def _build_label_value_pair(label, value, use_alt=False):
     """Build a label value pair text. If the alternative form is to be used,
     the value goes before the label, and the separator used is a period ('.').
 
@@ -233,8 +263,11 @@ def filter_list_on_list(primary_list, secondary_list):
         list. An empty list is returned if no matches are found.
     """
 
-    return list(filter(
-        lambda item: any(x in item for x in secondary_list), primary_list))
+    return list(
+        filter(
+            lambda item: any(x in item for x in secondary_list), primary_list
+        )
+    )
 
 
 def filter_filenames_on_value(fnames, label, value):
@@ -268,10 +301,12 @@ def filter_filenames_on_value(fnames, label, value):
             label_value = _build_label_value_pair(hemisphere_label, _value)
         elif label == Label.SURFACE:
             label_value = _build_label_value_pair(
-                surface_label, _value, use_alt=True)
+                surface_label, _value, use_alt=True
+            )
         elif label == Label.TISSUE:
             label_value = _build_label_value_pair(
-                discrete_segmentation_label, _value)
+                discrete_segmentation_label, _value
+            )
         else:
             raise LabelError(_unknown_label_msg(label))
 
@@ -298,7 +333,7 @@ def is_subseq(possible_subseq, seq):
 
     def _get_length_n_slices(n):
         for i in range(len(seq) + 1 - n):
-            yield seq[i:i+n]
+            yield seq[i : i + n]
 
     # Will also return True if possible_subseq == seq
     if len(possible_subseq) > len(seq):
@@ -367,8 +402,10 @@ def get_longest_common_subseq(data):
 
     if len(data) > 1 and len(data[0]) > 0:
         for i in range(len(data[0])):
-            for j in range(len(data[0])-i+1):
-                if j > len(substr) and is_subseq_of_any(data[0][i:i+j], data):
-                    substr = data[0][i:i+j]
+            for j in range(len(data[0]) - i + 1):
+                if j > len(substr) and is_subseq_of_any(
+                    data[0][i : i + j], data
+                ):
+                    substr = data[0][i : i + j]
 
     return substr

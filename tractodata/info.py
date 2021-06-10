@@ -12,19 +12,24 @@ _version_extra = ".dev0"
 # _version_extra = ""
 
 # Format expected by setup.py and doc/conf.py: string of form "X.Y.Z"
-__version__ = "%s.%s.%s%s" % (_version_major,
-                              _version_minor,
-                              _version_micro,
-                              _version_extra)
+__version__ = "%s.%s.%s%s" % (
+    _version_major,
+    _version_minor,
+    _version_micro,
+    _version_extra,
+)
 
-classifiers = ["Development Status :: 3 - Alpha",
-               "Intended Audience :: Science/Research",
-               "Programming Language :: Python :: 3",
-               "Topic :: Scientific/Engineering",
-               "Topic :: Scientific/Engineering ::Neuroimaging"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering ::Neuroimaging",
+]
 
-description = "Tractography data repository to be used for " + \
-              "tractography research."
+description = (
+    "Tractography data repository to be used for " + "tractography research."
+)
 
 keywords = "tractodata DWI DL ML neuroimaging tractography"
 
@@ -35,9 +40,9 @@ MAINTAINER_EMAIL = ""
 DESCRIPTION = description
 URL = "https://github.com/jhlegarreta/tractodata"
 DOWNLOAD_URL = ""
-BUG_TRACKER = "https://github.com/jhlegarreta/tractodata/issues",
-DOCUMENTATION = "",
-SOURCE_CODE = "https://github.com/jhlegarreta/tractodata",
+BUG_TRACKER = ("https://github.com/jhlegarreta/tractodata/issues",)
+DOCUMENTATION = ("",)
+SOURCE_CODE = ("https://github.com/jhlegarreta/tractodata",)
 LICENSE = ""
 CLASSIFIERS = classifiers
 KEYWORDS = keywords
@@ -50,5 +55,4 @@ MICRO = _version_micro
 ISRELEASE = _version_extra == ""
 VERSION = __version__
 PROVIDES = ["tractodata"]
-REQUIRES = ["nibabel",
-            "dipy"]
+REQUIRES = ["nibabel", "dipy"]
