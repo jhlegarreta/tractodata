@@ -4,7 +4,6 @@ import enum
 import os
 import re
 
-
 bundle_label = "subset"
 discrete_segmentation_label = "dseg"
 endpoint_label = "part"

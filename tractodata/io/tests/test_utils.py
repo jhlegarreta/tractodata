@@ -3,10 +3,15 @@
 
 import numpy.testing as npt
 
-from tractodata.io.utils import \
-    (Label, get_label_value_from_filename, filter_filenames_on_value,
-     filter_list_on_list, is_subseq, is_subseq_of_any,
-     get_longest_common_subseq)
+from tractodata.io.utils import (
+    Label,
+    filter_filenames_on_value,
+    filter_list_on_list,
+    get_label_value_from_filename,
+    get_longest_common_subseq,
+    is_subseq,
+    is_subseq_of_any,
+)
 
 
 def test_get_bundle_from_filename():

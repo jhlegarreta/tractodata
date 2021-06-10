@@ -3,14 +3,16 @@
 """Installation script for the tractodata package.
 """
 
-from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
 from os.path import join as pjoin
-# import glob
 
 from setup_helpers import read_vars_from
+from setuptools import find_packages, setup
+
+# import glob
+
 
 
 # Read package information

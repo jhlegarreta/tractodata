@@ -1,38 +1,41 @@
 # -*- coding: utf-8 -*-
 
+import contextlib
 import enum
 import itertools
 import json
 import os
 import subprocess
 import sys
-import contextlib
-
 import tarfile
 import zipfile
+from hashlib import md5
+from os.path import join as pjoin
+from shutil import copyfileobj
+from urllib.request import urlopen
 
 import nibabel as nib
 import pandas as pd
-
-from os.path import join as pjoin
-from hashlib import md5
-from shutil import copyfileobj
-
-from urllib.request import urlopen
-
-from dipy.core.gradients import \
-    (gradient_table)  # , gradient_table_from_gradient_strength_bvecs)
+import trimeshpy
+from dipy.core.gradients import (
+    gradient_table,  # , gradient_table_from_gradient_strength_bvecs)
+)
 from dipy.io.gradients import read_bvals_bvecs
+
 # from dipy.io.image import load_nifti, load_nifti_data
 from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.streamline import load_tractogram
+
+from tractodata.io.utils import (
+    Label,
+    filter_filenames_on_value,
+    get_label_value_from_filename,
+    get_longest_common_subseq,
+)
+
 # from dipy.tracking.streamline import Streamlines
 
-import trimeshpy
 
-from tractodata.io.utils import \
-    (Label, get_label_value_from_filename, get_longest_common_subseq,
-     filter_filenames_on_value)
 
 
 # Set a user-writeable file-system location to put files:
