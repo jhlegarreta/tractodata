@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-16.04]
-        python-version: [3.6]
+        python-version: [3.8]
         requires: ['latest']
 
     steps:

@@ -11,7 +11,7 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-16.04]
-        python-version: [3.6]
+        python-version: [3.8]
         requires: ['minimal', 'latest']
 
     steps:
