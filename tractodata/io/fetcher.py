@@ -1800,7 +1800,7 @@ def read_dataset_bundling(
         Bundling dataset name.
     bundle_name : list, optional
         e.g., ["bundle1", "bundle2", "bundle3"]. See all the available bundles
-        in the appropriate directory of your``$HOME/.tractodata`` folder. If
+        in the appropriate directory of your ``$HOME/.tractodata`` folder. If
         `None`, all will be loaded.
     hemisphere_name : string, optional
         e.g., ["L", "R"] for left or right hemispheres. If `None` all will be
@@ -1866,7 +1866,7 @@ def read_dataset_bundle_masks(name, bundle_name=None, hemisphere_name=None):
         Dataset name.
     bundle_name : list, optional
         e.g., ["bundle1", "bundle2", "bundle3"]. See all the available bundles
-        in the appropriate directory of your``$HOME/.tractodata`` folder.
+        in the appropriate directory of your ``$HOME/.tractodata`` folder.
     hemisphere_name : string, optional
         e.g., ["L", "R"] for left or right hemispheres.
 
@@ -1918,7 +1918,7 @@ def read_dataset_bundle_endpoint_masks(
         Dataset name.
     bundle_name : list, optional
         e.g., ["bundle1", "bundle2", "bundle3"]. See all the available bundles
-        in the ``fibercup`` directory of your``$HOME/.tractodata`` folder.
+        in the ``fibercup`` directory of your ``$HOME/.tractodata`` folder.
     hemisphere_name : string, optional
         e.g., ["L", "R"] for left or right hemispheres.
     endpoint_name : string, optional
