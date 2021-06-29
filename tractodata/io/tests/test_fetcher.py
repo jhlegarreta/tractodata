@@ -577,11 +577,18 @@ def test_read_fibercup_dwi():
 
 def test_read_fibercup_tissue_maps():
 
+    tissue_name = [Tissue.WM.value]
     wm_img = fetcher.read_dataset_tissue_maps(
         Dataset.FIBERCUP_TISSUE_MAPS.name
-    )[Tissue.WM.value]
+    )[tissue_name[0]]
 
     _check_fibercup_img(wm_img)
+
+    wm_img = fetcher.read_dataset_tissue_maps(
+        Dataset.FIBERCUP_TISSUE_MAPS.name, tissue_name=tissue_name
+    )
+
+    _check_fibercup_img(wm_img[tissue_name[0]])
 
 
 def test_read_fibercup_synth_tracking():
@@ -969,11 +976,18 @@ def test_read_ismrm2015_dwi():
 
 def test_read_ismrm2015_tissue_maps():
 
+    tissue_name = [Tissue.WM.value]
     wm_img = fetcher.read_dataset_tissue_maps(
         Dataset.ISMRM2015_TISSUE_MAPS.name
-    )[Tissue.WM.value]
+    )[tissue_name[0]]
 
     _check_ismrm2015_img(wm_img)
+
+    wm_img = fetcher.read_dataset_tissue_maps(
+        Dataset.ISMRM2015_TISSUE_MAPS.name, tissue_name=tissue_name
+    )
+
+    _check_ismrm2015_img(wm_img[tissue_name[0]])
 
 
 def test_read_ismrm2015_surfaces():

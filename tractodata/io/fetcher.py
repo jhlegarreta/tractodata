@@ -510,13 +510,13 @@ fetch_fibercup_tissue_maps = _make_fetcher(
         "sub-01",
         "anat",
     ),
-    TRACTODATA_DATASETS_URL + "n8q5b/",
+    TRACTODATA_DATASETS_URL + "z8qea//",
     ["download"],
-    ["sub01-T1w_space-orig_label-WM_dseg.nii.gz"],
-    ["7170d0192fa00b5ef069f8e7c274950c"],
-    data_size="543B",
+    ["sub01-T1w_space-orig_dseg.zip"],
+    ["98e09f049676fe35c593baa33d1d0524"],
+    data_size="808B",
     doc="Download Fiber Cup dataset tissue maps",
-    unzip=False,
+    unzip=True,
 )
 
 fetch_fibercup_synth_tracking = _make_fetcher(
@@ -867,13 +867,13 @@ fetch_ismrm2015_tissue_maps = _make_fetcher(
         "sub-01",
         "anat",
     ),
-    TRACTODATA_DATASETS_URL + "hj8sd/",
+    TRACTODATA_DATASETS_URL + "b3z54//",
     ["download"],
-    ["sub01-T1w_space-orig_label-WM_dseg.nii.gz"],
-    ["b44487b6629c05353119d07f7c9c04f5"],
-    data_size="251.7KB",
+    ["sub01-T1w_space-orig_dseg.zip"],
+    ["04c1518480d79d603b126e2c436c697a"],
+    data_size="205.9KB",
     doc="Download ISMRM 2015 Tractography Challenge dataset tissue maps",
-    unzip=False,
+    unzip=True,
 )
 
 fetch_ismrm2015_surfaces = _make_fetcher(
@@ -1092,7 +1092,8 @@ def get_fnames(name):
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.FIBERCUP_TISSUE_MAPS.name:
         files, folder = fetch_fibercup_tissue_maps()
-        return pjoin(folder, list(files.keys())[0])
+        fnames = files["sub01-T1w_space-orig_dseg.zip"][2]
+        return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
         files, folder = fetch_fibercup_synth_tracking()
         return pjoin(folder, list(files.keys())[0])
@@ -1182,7 +1183,8 @@ def get_fnames(name):
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISMRM2015_TISSUE_MAPS.name:
         files, folder = fetch_ismrm2015_tissue_maps()
-        return pjoin(folder, list(files.keys())[0])
+        fnames = files["sub01-T1w_space-orig_dseg.zip"][2]
+        return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISMRM2015_SURFACES.name:
         files, folder = fetch_ismrm2015_surfaces()
         fnames = files["sub01-T1w_space-orig_pial.surf.zip"][2]
@@ -1322,14 +1324,13 @@ def list_tissue_maps_in_dataset(name):
 
     _check_known_dataset(name)
 
-    # For the current datasets, the only existing tissue map is the WM, so the
-    # get_fnames method returns a single filename
-    fname = get_fnames(name)
+    fnames = get_fnames(name)
 
     tissue_names = []
 
-    tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
-    tissue_names.append(tissue_name)
+    for fname in fnames:
+        tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
+        tissue_names.append(tissue_name)
 
     return tissue_names
 
@@ -1420,13 +1421,17 @@ def read_dataset_dwi(name):
     return img, gtab
 
 
-def read_dataset_tissue_maps(name):  # , tissue_names=None):
+def read_dataset_tissue_maps(name, tissue_name=None):
     """Load dataset tissue maps.
 
     Parameters
     ----------
     name : string
         Dataset name.
+    tissue_name : list, optional
+        e.g., ["CSF", "GM", "WM"]. See all the available tissues
+        in the appropriate directory of your ``$HOME/.tractodata`` folder. If
+        `None`, all will be loaded.
 
     Returns
     -------
@@ -1435,13 +1440,21 @@ def read_dataset_tissue_maps(name):  # , tissue_names=None):
 
     _check_known_dataset(name)
 
-    # For the current datasets, the only existing tissue map is the WM, so the
-    # get_fnames method returns a single filename
-    fname = get_fnames(name)
+    fnames = get_fnames(name)
 
-    tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
+    tissue_maps = dict()
 
-    tissue_maps = dict({tissue_name: nib.load(fname)})
+    fnames_shortlist = fnames
+
+    if tissue_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames, Label.TISSUE, tissue_name
+        )
+
+    for fname in fnames_shortlist:
+        _tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
+
+        tissue_maps[_tissue_name] = nib.load(fname)
 
     return tissue_maps
 

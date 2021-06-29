@@ -104,7 +104,7 @@ def test_get_tissue_from_filename():
 
     fname = "/dir/sub01-T1w_space-orig_label-GM_dseg.nii.gz"
 
-    expected_val = None
+    expected_val = "GM"
     obtained_val = get_label_value_from_filename(fname, Label.TISSUE)
 
     assert expected_val == obtained_val
@@ -112,6 +112,13 @@ def test_get_tissue_from_filename():
     fname = "/dir/sub01-T1w_space-orig_label-WM_seg.nii.gz"
 
     expected_val = None
+    obtained_val = get_label_value_from_filename(fname, Label.TISSUE)
+
+    assert expected_val == obtained_val
+
+    fname = "/dir/sub01-T1w_space-orig_label-CSF_probseg.nii.gz"
+
+    expected_val = "CSF"
     obtained_val = get_label_value_from_filename(fname, Label.TISSUE)
 
     assert expected_val == obtained_val
@@ -150,6 +157,20 @@ def test_filter_list_on_list():
 
 
 def test_filter_filenames_on_value():
+
+    fnames = [
+        "sub01-T1w_space-MNI152NLin2009cSym_label-CSF_dseg.nii.gz",
+        "sub01-T1w_space-MNI152NLin2009cSym_label-GM_probseg.nii.gz",
+        "sub01-T1w_space-MNI152NLin2009cSym_label-WM_probseg.nii.gz",
+    ]
+    label = Label.TISSUE
+    value = ["CSF"]
+
+    expected_val = [
+        "sub01-T1w_space-MNI152NLin2009cSym_label-CSF_dseg.nii.gz",
+    ]
+    obtained_val = filter_filenames_on_value(fnames, label, value)
+    npt.assert_equal(expected_val, obtained_val)
 
     fnames = [
         "sub01-dwi_space-orig_desc-synth_subset-CC_tractography.trk",

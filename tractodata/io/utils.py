@@ -6,6 +6,7 @@ import re
 
 bundle_label = "subset"
 discrete_segmentation_label = "dseg"
+probabilistic_segmentation_label = "probseg"
 endpoint_label = "part"
 hemisphere_label = "hemi"
 surface_label = "surf"
@@ -33,6 +34,8 @@ class Hemisphere(enum.Enum):
 
 
 class Tissue(enum.Enum):
+    CSF = "CSF"
+    GM = "GM"
     WM = "WM"
 
 
@@ -127,10 +130,16 @@ def _build_tissue_segmentation_regex():
         + general_label
         + label_value_separator
         + ")"
+        + Tissue.CSF.value
+        + "|"
+        + Tissue.GM.value
+        + "|"
         + Tissue.WM.value
-        + "(?=_"
+        + "(?=_("
         + discrete_segmentation_label
-        + ")"
+        + "|"
+        + probabilistic_segmentation_label
+        + "))"
     )
 
 
@@ -304,9 +313,7 @@ def filter_filenames_on_value(fnames, label, value):
                 surface_label, _value, use_alt=True
             )
         elif label == Label.TISSUE:
-            label_value = _build_label_value_pair(
-                discrete_segmentation_label, _value
-            )
+            label_value = _build_label_value_pair(general_label, _value)
         else:
             raise LabelError(_unknown_label_msg(label))
 
