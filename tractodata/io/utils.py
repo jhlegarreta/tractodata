@@ -6,8 +6,11 @@ import re
 
 bundle_label = "subset"
 discrete_segmentation_label = "dseg"
+dti_map_label = "DTI"
+probabilistic_segmentation_label = "probseg"
 endpoint_label = "part"
 hemisphere_label = "hemi"
+model_label = "model"
 surface_label = "surf"
 general_label = "label"
 label_value_separator = "-"
@@ -16,15 +19,27 @@ label_value_alt_separator = "."
 
 class Label(enum.Enum):
     BUNDLE = "bundle"
+    DTI = "dti"
     ENDPOINT = "endpoint"
+    EXCLUDEINCLUDE = "excludeinclude"
     HEMISPHERE = "hemisphere"
     TISSUE = "tissue"
     SURFACE = "surface"
 
 
+class DTIMap(enum.Enum):
+    FA = "FA"
+
+
 class Endpoint(enum.Enum):
     HEAD = "head"
     TAIL = "tail"
+
+
+class ExcludeIncludeMap(enum.Enum):
+    EXCLUDE = "exclude"
+    INCLUDE = "include"
+    INTERFACE = "interface"
 
 
 class Hemisphere(enum.Enum):
@@ -33,6 +48,8 @@ class Hemisphere(enum.Enum):
 
 
 class Tissue(enum.Enum):
+    CSF = "CSF"
+    GM = "GM"
     WM = "WM"
 
 
@@ -56,6 +73,27 @@ def _build_bundle_regex():
     return "(?<=_" + bundle_label + label_value_separator + ")(.*?)(?=_)"
 
 
+def _build_dti_map_regex():
+    """Build the DTI map regex.
+
+    Returns
+    -------
+    DTI map regex.
+    """
+
+    return (
+        "(?<=_"
+        + model_label
+        + label_value_separator
+        + dti_map_label
+        + "_"
+        + general_label
+        + label_value_separator
+        + ")"
+        + DTIMap.FA.value
+    )
+
+
 def _build_endpoint_regex():
     """Build the bundle mask endpoint regex.
 
@@ -73,6 +111,32 @@ def _build_endpoint_regex():
         + "|"
         + Endpoint.TAIL.value
         + ")(?=_)"
+    )
+
+
+def _build_exclude_include_regex():
+    """Build the exclude/include regex.
+
+    Returns
+    -------
+    Exclude/include regex.
+    """
+
+    return (
+        "(?<=_"
+        + general_label
+        + label_value_separator
+        + ")"
+        + ExcludeIncludeMap.EXCLUDE.value
+        + "|"
+        + ExcludeIncludeMap.INCLUDE.value
+        + "|"
+        + ExcludeIncludeMap.INTERFACE.value
+        + "(?=_"
+        + discrete_segmentation_label
+        + "|"
+        + probabilistic_segmentation_label
+        + ")"
     )
 
 
@@ -127,10 +191,16 @@ def _build_tissue_segmentation_regex():
         + general_label
         + label_value_separator
         + ")"
+        + Tissue.CSF.value
+        + "|"
+        + Tissue.GM.value
+        + "|"
         + Tissue.WM.value
-        + "(?=_"
+        + "(?=_("
         + discrete_segmentation_label
-        + ")"
+        + "|"
+        + probabilistic_segmentation_label
+        + "))"
     )
 
 
@@ -199,8 +269,12 @@ def get_label_value_from_filename(fname, label, has_period=False):
 
     if label == Label.BUNDLE:
         regex = _build_bundle_regex()
+    elif label == Label.DTI:
+        regex = _build_dti_map_regex()
     elif label == Label.ENDPOINT:
         regex = _build_endpoint_regex()
+    elif label == Label.EXCLUDEINCLUDE:
+        regex = _build_exclude_include_regex()
     elif label == Label.HEMISPHERE:
         regex = _build_hemisphere_regex()
     elif label == Label.SURFACE:
@@ -295,6 +369,10 @@ def filter_filenames_on_value(fnames, label, value):
 
         if label == Label.BUNDLE:
             label_value = _build_label_value_pair(bundle_label, _value)
+        elif label == Label.DTI:
+            label_value = _build_label_value_pair(general_label, _value)
+        elif label == Label.EXCLUDEINCLUDE:
+            label_value = _build_label_value_pair(general_label, _value)
         elif label == Label.ENDPOINT:
             label_value = _build_label_value_pair(endpoint_label, _value)
         elif label == Label.HEMISPHERE:
@@ -304,9 +382,7 @@ def filter_filenames_on_value(fnames, label, value):
                 surface_label, _value, use_alt=True
             )
         elif label == Label.TISSUE:
-            label_value = _build_label_value_pair(
-                discrete_segmentation_label, _value
-            )
+            label_value = _build_label_value_pair(general_label, _value)
         else:
             raise LabelError(_unknown_label_msg(label))
 

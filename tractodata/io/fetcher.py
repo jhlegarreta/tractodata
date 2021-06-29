@@ -70,6 +70,9 @@ class Dataset(enum.Enum):
     FIBERCUP_LOCAL_PROB_BUNDLING = "fibercup_local_prob_bundling"
     FIBERCUP_TRACKING_EVALUATION_CONFIG = "fibercup_tracking_evaluation_config"
     HCP_TR_ANAT = "hcp_tr_anat"
+    HCP_TR_DTI_MAPS = "hcp_tr_dti_maps"
+    HCP_TR_PVE_MAPS = "hcp_tr_pve_maps"
+    HCP_TR_EXCLUDE_INCLUDE_MAPS = "hcp_tr_exclude_include_maps"
     HCP_TR_SURFACES = "hcp_tr_surfaces"
     HCP_TR_PFT_TRACKING = "hcp_tr_pft_tracking"
     # ISBI2013_ANAT = "isbi2013_anat"
@@ -510,13 +513,13 @@ fetch_fibercup_tissue_maps = _make_fetcher(
         "sub-01",
         "anat",
     ),
-    TRACTODATA_DATASETS_URL + "n8q5b/",
+    TRACTODATA_DATASETS_URL + "z8qea//",
     ["download"],
-    ["sub01-T1w_space-orig_label-WM_dseg.nii.gz"],
-    ["7170d0192fa00b5ef069f8e7c274950c"],
-    data_size="543B",
+    ["sub01-T1w_space-orig_dseg.zip"],
+    ["98e09f049676fe35c593baa33d1d0524"],
+    data_size="808B",
     doc="Download Fiber Cup dataset tissue maps",
-    unzip=False,
+    unzip=True,
 )
 
 fetch_fibercup_synth_tracking = _make_fetcher(
@@ -729,6 +732,69 @@ fetch_hcp_tr_anat = _make_fetcher(
     unzip=False,
 )
 
+fetch_hcp_tr_dti_maps = _make_fetcher(
+    "fetch_hcp_tr_dti_maps",
+    pjoin(
+        tractodata_home,
+        "datasets",
+        "hcp_tr",
+        "derivatives",
+        "diffusion",
+        "tractoflow_fsl",
+        "sub-103818_re",
+        "dwi",
+    ),
+    TRACTODATA_DATASETS_URL + "3zmsn/",
+    ["download"],
+    ["sub103818_re-dwi_space-MNI152NLin2009cSym_model-DTI.zip"],
+    ["1a52dd87c4a9519435be2d81ee1e9d76"],
+    data_size="2.8MB",
+    doc="Download HCP Test-Retest subject retest dataset DTI maps",
+    unzip=True,
+)
+
+fetch_hcp_tr_pve_maps = _make_fetcher(
+    "fetch_hcp_tr_pve_maps",
+    pjoin(
+        tractodata_home,
+        "datasets",
+        "hcp_tr",
+        "derivatives",
+        "segmentation",
+        "fast",
+        "sub-103818_re",
+        "anat",
+    ),
+    TRACTODATA_DATASETS_URL + "pabwx/",
+    ["download"],
+    ["sub103818_re-T1w_space-MNI152NLin2009cSym_probseg.zip"],
+    ["5cefd06349f18a2f05a3fea1992a7eca"],
+    data_size="1.6MB",
+    doc="Download HCP Test-Retest subject retest dataset PVE map data",
+    unzip=True,
+)
+
+fetch_hcp_tr_exclude_include_maps = _make_fetcher(
+    "fetch_hcp_tr_exclude_include_maps",
+    pjoin(
+        tractodata_home,
+        "datasets",
+        "hcp_tr",
+        "derivatives",
+        "structural",
+        "tractoflow_fsl",
+        "sub-103818_re",
+        "anat",
+    ),
+    TRACTODATA_DATASETS_URL + "u8sbp/",
+    ["download"],
+    ["sub103818_re-T1w_space-MNI152NLin2009cSym_exclude_include.zip"],
+    ["574692ec2baf7fec8d2381c5be48a408"],
+    data_size="1.3MB",
+    doc="Download HCP Test-Retest subject retest dataset exclude/include map data",
+    unzip=True,
+)
+
 fetch_hcp_tr_surfaces = _make_fetcher(
     "fetch_hcp_tr_surfaces",
     pjoin(
@@ -867,13 +933,13 @@ fetch_ismrm2015_tissue_maps = _make_fetcher(
         "sub-01",
         "anat",
     ),
-    TRACTODATA_DATASETS_URL + "hj8sd/",
+    TRACTODATA_DATASETS_URL + "b3z54//",
     ["download"],
-    ["sub01-T1w_space-orig_label-WM_dseg.nii.gz"],
-    ["b44487b6629c05353119d07f7c9c04f5"],
-    data_size="251.7KB",
+    ["sub01-T1w_space-orig_dseg.zip"],
+    ["04c1518480d79d603b126e2c436c697a"],
+    data_size="205.9KB",
     doc="Download ISMRM 2015 Tractography Challenge dataset tissue maps",
-    unzip=False,
+    unzip=True,
 )
 
 fetch_ismrm2015_surfaces = _make_fetcher(
@@ -1092,7 +1158,8 @@ def get_fnames(name):
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.FIBERCUP_TISSUE_MAPS.name:
         files, folder = fetch_fibercup_tissue_maps()
-        return pjoin(folder, list(files.keys())[0])
+        fnames = files["sub01-T1w_space-orig_dseg.zip"][2]
+        return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
         files, folder = fetch_fibercup_synth_tracking()
         return pjoin(folder, list(files.keys())[0])
@@ -1148,6 +1215,24 @@ def get_fnames(name):
     elif name == Dataset.HCP_TR_ANAT.name:
         files, folder = fetch_hcp_tr_anat()
         return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.HCP_TR_DTI_MAPS.name:
+        files, folder = fetch_hcp_tr_dti_maps()
+        fnames = files[
+            "sub103818_re-dwi_space-MNI152NLin2009cSym_model-DTI.zip"
+        ][2]
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.HCP_TR_EXCLUDE_INCLUDE_MAPS.name:
+        files, folder = fetch_hcp_tr_exclude_include_maps()
+        fnames = files[
+            "sub103818_re-T1w_space-MNI152NLin2009cSym_exclude_include.zip"
+        ][2]
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.HCP_TR_PVE_MAPS.name:
+        files, folder = fetch_hcp_tr_pve_maps()
+        fnames = files[
+            "sub103818_re-T1w_space-MNI152NLin2009cSym_probseg.zip"
+        ][2]
+        return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.HCP_TR_SURFACES.name:
         files, folder = fetch_hcp_tr_surfaces()
         fnames = files[
@@ -1182,7 +1267,8 @@ def get_fnames(name):
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISMRM2015_TISSUE_MAPS.name:
         files, folder = fetch_ismrm2015_tissue_maps()
-        return pjoin(folder, list(files.keys())[0])
+        fnames = files["sub01-T1w_space-orig_dseg.zip"][2]
+        return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISMRM2015_SURFACES.name:
         files, folder = fetch_ismrm2015_surfaces()
         fnames = files["sub01-T1w_space-orig_pial.surf.zip"][2]
@@ -1306,6 +1392,62 @@ def list_bundle_endpoint_masks_in_dataset(name):
     return bundle_endpoints
 
 
+def list_dti_maps_in_dataset(name):
+    """List dataset DTI map names.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    dti_map_names : list
+        DTI map names.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    dti_map_names = []
+
+    for fname in fnames:
+        dti_map_name = get_label_value_from_filename(fname, Label.DTI)
+        dti_map_names.append(dti_map_name)
+
+    return dti_map_names
+
+
+def list_exclude_include_maps_in_dataset(name):
+    """List dataset exclude/include map names.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    exclude_include_names : list
+        Exclude/include map names.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    exclude_include_names = []
+
+    for fname in fnames:
+        exclude_include_name = get_label_value_from_filename(
+            fname, Label.EXCLUDEINCLUDE
+        )
+        exclude_include_names.append(exclude_include_name)
+
+    return exclude_include_names
+
+
 def list_tissue_maps_in_dataset(name):
     """List dataset tissue map names.
 
@@ -1322,14 +1464,13 @@ def list_tissue_maps_in_dataset(name):
 
     _check_known_dataset(name)
 
-    # For the current datasets, the only existing tissue map is the WM, so the
-    # get_fnames method returns a single filename
-    fname = get_fnames(name)
+    fnames = get_fnames(name)
 
     tissue_names = []
 
-    tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
-    tissue_names.append(tissue_name)
+    for fname in fnames:
+        tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
+        tissue_names.append(tissue_name)
 
     return tissue_names
 
@@ -1420,13 +1561,95 @@ def read_dataset_dwi(name):
     return img, gtab
 
 
-def read_dataset_tissue_maps(name):  # , tissue_names=None):
+def read_dataset_dti_maps(name, map_name=None):
+    """Load dataset DTI maps.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+    map_name : list, optional
+        e.g., ["FA"]. See all the available DTI maps
+        in the appropriate directory of your ``$HOME/.tractodata`` folder. If
+        `None`, all will be loaded.
+
+    Returns
+    -------
+    Nifti1Image DTI maps.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    dti_maps = dict()
+
+    fnames_shortlist = fnames
+
+    if map_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames, Label.DTI, map_name
+        )
+
+    for fname in fnames_shortlist:
+        _map_name = get_label_value_from_filename(fname, Label.DTI)
+
+        dti_maps[_map_name] = nib.load(fname)
+
+    return dti_maps
+
+
+def read_dataset_exclude_include_maps(name, exclude_include_name=None):
     """Load dataset tissue maps.
 
     Parameters
     ----------
     name : string
         Dataset name.
+    exclude_include_name : list, optional
+        e.g., ["EXCLUDE", "INCLUDE", "INTERFACE"]. See all the available
+        exclude/include names in the appropriate directory of your
+        ``$HOME/.tractodata`` folder. If `None`, all will be loaded.
+
+    Returns
+    -------
+    Nifti1Image exclude/include maps.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    exclude_include_maps = dict()
+
+    fnames_shortlist = fnames
+
+    if exclude_include_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames, Label.EXCLUDEINCLUDE, exclude_include_name
+        )
+
+    for fname in fnames_shortlist:
+        _exclude_include_name = get_label_value_from_filename(
+            fname, Label.EXCLUDEINCLUDE
+        )
+
+        exclude_include_maps[_exclude_include_name] = nib.load(fname)
+
+    return exclude_include_maps
+
+
+def read_dataset_tissue_maps(name, tissue_name=None):
+    """Load dataset tissue maps.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+    tissue_name : list, optional
+        e.g., ["CSF", "GM", "WM"]. See all the available tissues
+        in the appropriate directory of your ``$HOME/.tractodata`` folder. If
+        `None`, all will be loaded.
 
     Returns
     -------
@@ -1435,13 +1658,21 @@ def read_dataset_tissue_maps(name):  # , tissue_names=None):
 
     _check_known_dataset(name)
 
-    # For the current datasets, the only existing tissue map is the WM, so the
-    # get_fnames method returns a single filename
-    fname = get_fnames(name)
+    fnames = get_fnames(name)
 
-    tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
+    tissue_maps = dict()
 
-    tissue_maps = dict({tissue_name: nib.load(fname)})
+    fnames_shortlist = fnames
+
+    if tissue_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames, Label.TISSUE, tissue_name
+        )
+
+    for fname in fnames_shortlist:
+        _tissue_name = get_label_value_from_filename(fname, Label.TISSUE)
+
+        tissue_maps[_tissue_name] = nib.load(fname)
 
     return tissue_maps
 
@@ -1569,7 +1800,7 @@ def read_dataset_bundling(
         Bundling dataset name.
     bundle_name : list, optional
         e.g., ["bundle1", "bundle2", "bundle3"]. See all the available bundles
-        in the appropriate directory of your``$HOME/.tractodata`` folder. If
+        in the appropriate directory of your ``$HOME/.tractodata`` folder. If
         `None`, all will be loaded.
     hemisphere_name : string, optional
         e.g., ["L", "R"] for left or right hemispheres. If `None` all will be
@@ -1635,7 +1866,7 @@ def read_dataset_bundle_masks(name, bundle_name=None, hemisphere_name=None):
         Dataset name.
     bundle_name : list, optional
         e.g., ["bundle1", "bundle2", "bundle3"]. See all the available bundles
-        in the appropriate directory of your``$HOME/.tractodata`` folder.
+        in the appropriate directory of your ``$HOME/.tractodata`` folder.
     hemisphere_name : string, optional
         e.g., ["L", "R"] for left or right hemispheres.
 
@@ -1687,7 +1918,7 @@ def read_dataset_bundle_endpoint_masks(
         Dataset name.
     bundle_name : list, optional
         e.g., ["bundle1", "bundle2", "bundle3"]. See all the available bundles
-        in the ``fibercup`` directory of your``$HOME/.tractodata`` folder.
+        in the ``fibercup`` directory of your ``$HOME/.tractodata`` folder.
     hemisphere_name : string, optional
         e.g., ["L", "R"] for left or right hemispheres.
     endpoint_name : string, optional
