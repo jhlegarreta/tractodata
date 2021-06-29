@@ -21,7 +21,14 @@ from trimeshpy import vtk_util as vtk_u
 import tractodata.io.fetcher as fetcher
 from tractodata.data import TEST_FILES
 from tractodata.io.fetcher import TRACTODATA_DATASETS_URL, Dataset
-from tractodata.io.utils import Endpoint, Hemisphere, Surface, Tissue
+from tractodata.io.utils import (
+    DTIMap,
+    Endpoint,
+    ExcludeIncludeMap,
+    Hemisphere,
+    Surface,
+    Tissue,
+)
 
 fibercup_bundles = [
     "bundle1",
@@ -48,6 +55,14 @@ ismrm2015_projection_bundles = ["CST"]
 ismrm2015_commissural_bundles = ["CC", "CA", "CP", "Fornix", "MCP"]
 ismrm2015_tissues = [Tissue.WM.value]
 ismrm2015_surfaces = [Surface.PIAL.value]
+
+hcp_tr_dti_maps = [DTIMap.FA.value]
+hcp_tr_exclude_include_maps = [
+    ExcludeIncludeMap.EXCLUDE.value,
+    ExcludeIncludeMap.INCLUDE.value,
+    ExcludeIncludeMap.INTERFACE.value,
+]
+hcp_tr_pve_maps = [Tissue.CSF.value, Tissue.GM.value, Tissue.WM.value]
 
 tracking_config_file_necessary_keys = ["cluster_threshold"]
 
@@ -431,6 +446,39 @@ def test_list_fibercup_tissue_maps():
 
     expected_val = fibercup_tissues
     obtained_val = tissue_names
+    assert expected_val == obtained_val
+
+
+def test_list_hcp_tr_dti_maps():
+
+    dti_map_names = fetcher.list_dti_maps_in_dataset(
+        Dataset.HCP_TR_DTI_MAPS.name
+    )
+
+    expected_val = hcp_tr_dti_maps
+    obtained_val = dti_map_names
+    assert expected_val == obtained_val
+
+
+def test_list_hcp_tr_exclude_include_maps_in_dataset():
+
+    exclude_include_map_names = fetcher.list_exclude_include_maps_in_dataset(
+        Dataset.HCP_TR_EXCLUDE_INCLUDE_MAPS.name
+    )
+
+    expected_val = hcp_tr_exclude_include_maps
+    obtained_val = exclude_include_map_names
+    assert expected_val == obtained_val
+
+
+def test_list_hcp_tr_pve_maps_in_dataset():
+
+    pve_map_names = fetcher.list_tissue_maps_in_dataset(
+        Dataset.HCP_TR_PVE_MAPS.name
+    )
+
+    expected_val = hcp_tr_pve_maps
+    obtained_val = pve_map_names
     assert expected_val == obtained_val
 
 
@@ -853,6 +901,55 @@ def test_read_hcp_tr_anat():
     anat_img = fetcher.read_dataset_anat(Dataset.HCP_TR_ANAT.name)
 
     _check_hcp_tr_img(anat_img)
+
+
+def test_read_hcp_tr_dti_maps():
+
+    map_name = [DTIMap.FA.value]
+    dti_map_img = fetcher.read_dataset_dti_maps(Dataset.HCP_TR_DTI_MAPS.name)
+
+    _check_hcp_tr_img(dti_map_img[map_name[0]])
+
+    dti_map_img = fetcher.read_dataset_dti_maps(
+        Dataset.HCP_TR_DTI_MAPS.name, map_name
+    )
+
+    _check_hcp_tr_img(dti_map_img[map_name[0]])
+
+
+def test_read_hcp_tr_exclude_include_maps():
+
+    exclude_include_maps = fetcher.read_dataset_exclude_include_maps(
+        Dataset.HCP_TR_EXCLUDE_INCLUDE_MAPS.name
+    )
+
+    _check_hcp_tr_img(exclude_include_maps[ExcludeIncludeMap.EXCLUDE.value])
+    _check_hcp_tr_img(exclude_include_maps[ExcludeIncludeMap.INCLUDE.value])
+    _check_hcp_tr_img(exclude_include_maps[ExcludeIncludeMap.INTERFACE.value])
+
+    exclude_include_name = [ExcludeIncludeMap.EXCLUDE.value]
+    exclude_include_maps = fetcher.read_dataset_exclude_include_maps(
+        Dataset.HCP_TR_EXCLUDE_INCLUDE_MAPS.name,
+        exclude_include_name=exclude_include_name,
+    )
+
+    _check_hcp_tr_img(exclude_include_maps[exclude_include_name[0]])
+
+
+def test_read_hcp_tr_pve_maps():
+
+    pve_maps = fetcher.read_dataset_tissue_maps(Dataset.HCP_TR_PVE_MAPS.name)
+
+    _check_hcp_tr_img(pve_maps[Tissue.CSF.value])
+    _check_hcp_tr_img(pve_maps[Tissue.GM.value])
+    _check_hcp_tr_img(pve_maps[Tissue.WM.value])
+
+    tissue_name = [Tissue.CSF.value]
+    pve_maps = fetcher.read_dataset_tissue_maps(
+        Dataset.HCP_TR_PVE_MAPS.name, tissue_name=tissue_name
+    )
+
+    _check_hcp_tr_img(pve_maps[tissue_name[0]])
 
 
 def test_read_hcp_tr_surfaces():

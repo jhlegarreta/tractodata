@@ -70,6 +70,9 @@ class Dataset(enum.Enum):
     FIBERCUP_LOCAL_PROB_BUNDLING = "fibercup_local_prob_bundling"
     FIBERCUP_TRACKING_EVALUATION_CONFIG = "fibercup_tracking_evaluation_config"
     HCP_TR_ANAT = "hcp_tr_anat"
+    HCP_TR_DTI_MAPS = "hcp_tr_dti_maps"
+    HCP_TR_PVE_MAPS = "hcp_tr_pve_maps"
+    HCP_TR_EXCLUDE_INCLUDE_MAPS = "hcp_tr_exclude_include_maps"
     HCP_TR_SURFACES = "hcp_tr_surfaces"
     HCP_TR_PFT_TRACKING = "hcp_tr_pft_tracking"
     # ISBI2013_ANAT = "isbi2013_anat"
@@ -729,6 +732,69 @@ fetch_hcp_tr_anat = _make_fetcher(
     unzip=False,
 )
 
+fetch_hcp_tr_dti_maps = _make_fetcher(
+    "fetch_hcp_tr_dti_maps",
+    pjoin(
+        tractodata_home,
+        "datasets",
+        "hcp_tr",
+        "derivatives",
+        "diffusion",
+        "tractoflow_fsl",
+        "sub-103818_re",
+        "dwi",
+    ),
+    TRACTODATA_DATASETS_URL + "3zmsn/",
+    ["download"],
+    ["sub103818_re-dwi_space-MNI152NLin2009cSym_model-DTI.zip"],
+    ["1a52dd87c4a9519435be2d81ee1e9d76"],
+    data_size="2.8MB",
+    doc="Download HCP Test-Retest subject retest dataset DTI maps",
+    unzip=True,
+)
+
+fetch_hcp_tr_pve_maps = _make_fetcher(
+    "fetch_hcp_tr_pve_maps",
+    pjoin(
+        tractodata_home,
+        "datasets",
+        "hcp_tr",
+        "derivatives",
+        "segmentation",
+        "fast",
+        "sub-103818_re",
+        "anat",
+    ),
+    TRACTODATA_DATASETS_URL + "pabwx/",
+    ["download"],
+    ["sub103818_re-T1w_space-MNI152NLin2009cSym_probseg.zip"],
+    ["5cefd06349f18a2f05a3fea1992a7eca"],
+    data_size="1.6MB",
+    doc="Download HCP Test-Retest subject retest dataset PVE map data",
+    unzip=True,
+)
+
+fetch_hcp_tr_exclude_include_maps = _make_fetcher(
+    "fetch_hcp_tr_exclude_include_maps",
+    pjoin(
+        tractodata_home,
+        "datasets",
+        "hcp_tr",
+        "derivatives",
+        "structural",
+        "tractoflow_fsl",
+        "sub-103818_re",
+        "anat",
+    ),
+    TRACTODATA_DATASETS_URL + "u8sbp/",
+    ["download"],
+    ["sub103818_re-T1w_space-MNI152NLin2009cSym_exclude_include.zip"],
+    ["574692ec2baf7fec8d2381c5be48a408"],
+    data_size="1.3MB",
+    doc="Download HCP Test-Retest subject retest dataset exclude/include map data",
+    unzip=True,
+)
+
 fetch_hcp_tr_surfaces = _make_fetcher(
     "fetch_hcp_tr_surfaces",
     pjoin(
@@ -1149,6 +1215,24 @@ def get_fnames(name):
     elif name == Dataset.HCP_TR_ANAT.name:
         files, folder = fetch_hcp_tr_anat()
         return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.HCP_TR_DTI_MAPS.name:
+        files, folder = fetch_hcp_tr_dti_maps()
+        fnames = files[
+            "sub103818_re-dwi_space-MNI152NLin2009cSym_model-DTI.zip"
+        ][2]
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.HCP_TR_EXCLUDE_INCLUDE_MAPS.name:
+        files, folder = fetch_hcp_tr_exclude_include_maps()
+        fnames = files[
+            "sub103818_re-T1w_space-MNI152NLin2009cSym_exclude_include.zip"
+        ][2]
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.HCP_TR_PVE_MAPS.name:
+        files, folder = fetch_hcp_tr_pve_maps()
+        fnames = files[
+            "sub103818_re-T1w_space-MNI152NLin2009cSym_probseg.zip"
+        ][2]
+        return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.HCP_TR_SURFACES.name:
         files, folder = fetch_hcp_tr_surfaces()
         fnames = files[
@@ -1308,6 +1392,62 @@ def list_bundle_endpoint_masks_in_dataset(name):
     return bundle_endpoints
 
 
+def list_dti_maps_in_dataset(name):
+    """List dataset DTI map names.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    dti_map_names : list
+        DTI map names.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    dti_map_names = []
+
+    for fname in fnames:
+        dti_map_name = get_label_value_from_filename(fname, Label.DTI)
+        dti_map_names.append(dti_map_name)
+
+    return dti_map_names
+
+
+def list_exclude_include_maps_in_dataset(name):
+    """List dataset exclude/include map names.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+
+    Returns
+    -------
+    exclude_include_names : list
+        Exclude/include map names.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    exclude_include_names = []
+
+    for fname in fnames:
+        exclude_include_name = get_label_value_from_filename(
+            fname, Label.EXCLUDEINCLUDE
+        )
+        exclude_include_names.append(exclude_include_name)
+
+    return exclude_include_names
+
+
 def list_tissue_maps_in_dataset(name):
     """List dataset tissue map names.
 
@@ -1419,6 +1559,84 @@ def read_dataset_dwi(name):
     img = nib.load(dwi_fname)
 
     return img, gtab
+
+
+def read_dataset_dti_maps(name, map_name=None):
+    """Load dataset DTI maps.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+    map_name : list, optional
+        e.g., ["FA"]. See all the available DTI maps
+        in the appropriate directory of your ``$HOME/.tractodata`` folder. If
+        `None`, all will be loaded.
+
+    Returns
+    -------
+    Nifti1Image DTI maps.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    dti_maps = dict()
+
+    fnames_shortlist = fnames
+
+    if map_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames, Label.DTI, map_name
+        )
+
+    for fname in fnames_shortlist:
+        _map_name = get_label_value_from_filename(fname, Label.DTI)
+
+        dti_maps[_map_name] = nib.load(fname)
+
+    return dti_maps
+
+
+def read_dataset_exclude_include_maps(name, exclude_include_name=None):
+    """Load dataset tissue maps.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+    exclude_include_name : list, optional
+        e.g., ["EXCLUDE", "INCLUDE", "INTERFACE"]. See all the available
+        exclude/include names in the appropriate directory of your
+        ``$HOME/.tractodata`` folder. If `None`, all will be loaded.
+
+    Returns
+    -------
+    Nifti1Image exclude/include maps.
+    """
+
+    _check_known_dataset(name)
+
+    fnames = get_fnames(name)
+
+    exclude_include_maps = dict()
+
+    fnames_shortlist = fnames
+
+    if exclude_include_name:
+        fnames_shortlist = filter_filenames_on_value(
+            fnames, Label.EXCLUDEINCLUDE, exclude_include_name
+        )
+
+    for fname in fnames_shortlist:
+        _exclude_include_name = get_label_value_from_filename(
+            fname, Label.EXCLUDEINCLUDE
+        )
+
+        exclude_include_maps[_exclude_include_name] = nib.load(fname)
+
+    return exclude_include_maps
 
 
 def read_dataset_tissue_maps(name, tissue_name=None):

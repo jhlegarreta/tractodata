@@ -31,6 +31,33 @@ def test_get_bundle_from_filename():
     assert expected_val == obtained_val
 
 
+def test_get_dti_measure_from_filename():
+
+    fname = "/dir/subdir/sub01-dwi_space-MNI152NLin2009cSym_model-DTI_label-FA.nii.gz"  # noqa E501
+
+    expected_val = "FA"
+    obtained_val = get_label_value_from_filename(fname, Label.DTI)
+
+    assert expected_val == obtained_val
+
+
+def test_get_exclude_include_from_filename():
+
+    fname = "/dir/subdir/sub01-T1w_space-MNI152NLin2009cSym_label-exclude_probseg.nii.gz"  # noqa E501
+
+    expected_val = "exclude"
+    obtained_val = get_label_value_from_filename(fname, Label.EXCLUDEINCLUDE)
+
+    assert expected_val == obtained_val
+
+    fname = "/dir/subdir/sub01-T1w_space-MNI152NLin2009cSym_label-include_probseg.nii.gz"  # noqa E501
+
+    expected_val = "include"
+    obtained_val = get_label_value_from_filename(fname, Label.EXCLUDEINCLUDE)
+
+    assert expected_val == obtained_val
+
+
 def test_get_endpoint_from_filename():
 
     fname = "/dir/sub01-T1w_hemi-L_space-orig_desc-synth_subset-Cing_part-head_tractography.trk"  # noqa E501
@@ -173,6 +200,21 @@ def test_filter_filenames_on_value():
     npt.assert_equal(expected_val, obtained_val)
 
     fnames = [
+        "sub01-T1w_space-MNI152NLin2009cSym_label-exclude_probseg.nii.gz",
+        "sub01-T1w_space-MNI152NLin2009cSym_label-exclude_probseg.nii.gz",
+        "sub01-T1w_space-MNI152NLin2009cSym_label-anyother_probseg.nii.gz",
+    ]
+    label = Label.EXCLUDEINCLUDE
+    value = ["exclude", "include"]
+
+    expected_val = [
+        "sub01-T1w_space-MNI152NLin2009cSym_label-exclude_probseg.nii.gz",
+        "sub01-T1w_space-MNI152NLin2009cSym_label-exclude_probseg.nii.gz",
+    ]
+    obtained_val = filter_filenames_on_value(fnames, label, value)
+    npt.assert_equal(expected_val, obtained_val)
+
+    fnames = [
         "sub01-dwi_space-orig_desc-synth_subset-CC_tractography.trk",
         "sub01-dwi_hemi-L_space-orig_desc-synth_subset-Cing_tractography.trk",
         "sub01-dwi_hemi-R_space-orig_desc-synth_subset-Cing_tractography.trk",
@@ -240,6 +282,19 @@ def test_filter_filenames_on_value():
     ]
     obtained_val = filter_filenames_on_value(fnames, label, value)
 
+    npt.assert_equal(expected_val, obtained_val)
+
+    fnames = [
+        "sub01-dwi_space-MNI152NLin2009cSym_model-DTI_label-FA.nii.gz",
+        "sub01-dwi_space-MNI152NLin2009cSym_model-DTI_label-nFA.nii.gz",
+    ]
+    label = Label.DTI
+    value = ["FA"]
+
+    expected_val = [
+        "sub01-dwi_space-MNI152NLin2009cSym_model-DTI_label-FA.nii.gz",
+    ]
+    obtained_val = filter_filenames_on_value(fnames, label, value)
     npt.assert_equal(expected_val, obtained_val)
 
 
