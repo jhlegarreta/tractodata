@@ -1083,6 +1083,33 @@ def test_read_ismrm2015_dwi():
     assert expected_val == obtained_val
 
 
+def test_read_ismrm2015_dwi_preproc():
+
+    dwi_img, gtab = fetcher.read_dataset_dwi(
+        Dataset.ISMRM2015_DWI_PREPROC.name
+    )
+
+    npt.assert_equal(dwi_img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(dwi_img.get_fdata().dtype, np.float64)
+    npt.assert_equal(dwi_img.get_fdata().shape, (180, 216, 180, 33))
+
+    expected_val = 33
+    obtained_val = len(gtab.bvals)
+
+    assert expected_val == obtained_val
+
+    expected_val = (0, 1000)
+
+    assert np.logical_and(
+        gtab.bvals >= expected_val[0], gtab.bvals <= expected_val[-1]
+    ).all()
+
+    expected_val = 33
+    obtained_val = len(gtab.bvecs)
+
+    assert expected_val == obtained_val
+
+
 def test_read_ismrm2015_tissue_maps():
 
     tissue_name = [Tissue.WM.value]
