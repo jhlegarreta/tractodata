@@ -80,8 +80,10 @@ class Dataset(enum.Enum):
     # ISBI2013_TRACTOGRAPHY = "isbi2013_tractography"
     ISMRM2015_ANAT = "ismrm2015_anat"
     ISMRM2015_DWI = "ismrm2015_dwi"
+    ISMRM2015_DWI_PREPROC = "ismrm2015_dwi_preproc"
     ISMRM2015_TISSUE_MAPS = "ismrm2015_tissue_maps"
     ISMRM2015_SURFACES = "ismrm2015_surfaces"
+    ISMRM2015_DTI_MAPS = "ismrm2015_dti_maps"
     ISMRM2015_SYNTH_TRACKING = "ismrm2015_synth_tracking"
     ISMRM2015_SYNTH_BUNDLING = "ismrm2015_synth_bundling"
     ISMRM2015_BUNDLE_MASKS = "ismrm2015_bundle_masks"
@@ -921,6 +923,27 @@ fetch_ismrm2015_dwi = _make_fetcher(
     unzip=True,
 )
 
+fetch_ismrm2015_dwi_preproc = _make_fetcher(
+    "fetch_ismrm2015_dwi_preproc",
+    pjoin(
+        tractodata_home,
+        "datasets",
+        "ismrm2015",
+        "derivatives",
+        "preproc",
+        "scilpy",
+        "sub-01",
+        "dwi",
+    ),
+    TRACTODATA_DATASETS_URL + "gjwe6/",
+    ["download"],
+    ["sub01-dwi_space-orig_res-t1.zip"],
+    ["469a7817545cc0973f4f651b3ed2c6d8"],
+    data_size="54.8MB",
+    doc="Download ISMRM 2015 Tractography Challenge dataset pre-processed diffusion data",  # noqa E501
+    unzip=True,
+)
+
 fetch_ismrm2015_tissue_maps = _make_fetcher(
     "fetch_ismrm2015_tissue_maps",
     pjoin(
@@ -960,6 +983,27 @@ fetch_ismrm2015_surfaces = _make_fetcher(
     ["33ea5dcd1e863eb4dc8c3063bf3d89fd"],
     data_size="3.7MB",
     doc="Download ISMRM 2015 Tractography Challenge dataset surface data",
+    unzip=True,
+)
+
+fetch_ismrm2015_dti_maps = _make_fetcher(
+    "fetch_ismrm2015_dti_maps",
+    pjoin(
+        tractodata_home,
+        "datasets",
+        "ismrm2015",
+        "derivatives",
+        "diffusion",
+        "scilpy",
+        "sub-01",
+        "dwi",
+    ),
+    TRACTODATA_DATASETS_URL + "wnfh2/",
+    ["download"],
+    ["sub01-dwi_space-orig_desc-WLS_model-DTI.zip"],
+    ["ea30620705f123ca6dffcfce9330d0ac"],
+    data_size="5.5MB",
+    doc="Download ISMRM 2015 Tractography Challenge dataset DTI maps",
     unzip=True,
 )
 
@@ -1261,9 +1305,17 @@ def get_fnames(name):
     elif name == Dataset.ISMRM2015_ANAT.name:
         files, folder = fetch_ismrm2015_anat()
         return pjoin(folder, list(files.keys())[0])
+    elif name == Dataset.ISMRM2015_DTI_MAPS.name:
+        files, folder = fetch_ismrm2015_dti_maps()
+        fnames = files["sub01-dwi_space-orig_desc-WLS_model-DTI.zip"][2]
+        return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISMRM2015_DWI.name:
         files, folder = fetch_ismrm2015_dwi()
         fnames = files["sub01-dwi.zip"][2]
+        return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.ISMRM2015_DWI_PREPROC.name:
+        files, folder = fetch_ismrm2015_dwi_preproc()
+        fnames = files["sub01-dwi_space-orig_res-t1.zip"][2]
         return sorted([pjoin(folder, f) for f in fnames])
     elif name == Dataset.ISMRM2015_TISSUE_MAPS.name:
         files, folder = fetch_ismrm2015_tissue_maps()

@@ -53,6 +53,7 @@ ismrm2015_association_bundles = [
 ]
 ismrm2015_projection_bundles = ["CST"]
 ismrm2015_commissural_bundles = ["CC", "CA", "CP", "Fornix", "MCP"]
+ismrm2015_dti_maps = [DTIMap.FA.value]
 ismrm2015_tissues = [Tissue.WM.value]
 ismrm2015_surfaces = [Surface.PIAL.value]
 
@@ -479,6 +480,17 @@ def test_list_hcp_tr_pve_maps_in_dataset():
 
     expected_val = hcp_tr_pve_maps
     obtained_val = pve_map_names
+    assert expected_val == obtained_val
+
+
+def test_list_ismrm2015_dti_maps():
+
+    dti_map_names = fetcher.list_dti_maps_in_dataset(
+        Dataset.ISMRM2015_DTI_MAPS.name
+    )
+
+    expected_val = ismrm2015_dti_maps
+    obtained_val = dti_map_names
     assert expected_val == obtained_val
 
 
@@ -1071,6 +1083,33 @@ def test_read_ismrm2015_dwi():
     assert expected_val == obtained_val
 
 
+def test_read_ismrm2015_dwi_preproc():
+
+    dwi_img, gtab = fetcher.read_dataset_dwi(
+        Dataset.ISMRM2015_DWI_PREPROC.name
+    )
+
+    npt.assert_equal(dwi_img.__class__.__name__, nib.Nifti1Image.__name__)
+    npt.assert_equal(dwi_img.get_fdata().dtype, np.float64)
+    npt.assert_equal(dwi_img.get_fdata().shape, (180, 216, 180, 33))
+
+    expected_val = 33
+    obtained_val = len(gtab.bvals)
+
+    assert expected_val == obtained_val
+
+    expected_val = (0, 1000)
+
+    assert np.logical_and(
+        gtab.bvals >= expected_val[0], gtab.bvals <= expected_val[-1]
+    ).all()
+
+    expected_val = 33
+    obtained_val = len(gtab.bvecs)
+
+    assert expected_val == obtained_val
+
+
 def test_read_ismrm2015_tissue_maps():
 
     tissue_name = [Tissue.WM.value]
@@ -1177,6 +1216,22 @@ def test_read_ismrm2015_surfaces():
     expected_val = (70226, 3)
     obtained_val = vtk_u.get_polydata_vertices(surface[_name]).shape
     assert expected_val == obtained_val
+
+
+def test_read_ismrm2015_dti_maps():
+
+    map_name = [DTIMap.FA.value]
+    dti_map_img = fetcher.read_dataset_dti_maps(
+        Dataset.ISMRM2015_DTI_MAPS.name
+    )
+
+    _check_ismrm2015_img(dti_map_img[map_name[0]])
+
+    dti_map_img = fetcher.read_dataset_dti_maps(
+        Dataset.ISMRM2015_DTI_MAPS.name, map_name
+    )
+
+    _check_ismrm2015_img(dti_map_img[map_name[0]])
 
 
 def test_read_ismrm2015_synth_tracking():
