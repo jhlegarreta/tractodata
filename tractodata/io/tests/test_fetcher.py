@@ -1037,6 +1037,18 @@ def test_read_hcp_tr_surfaces():
     assert expected_val == obtained_val
 
 
+def test_read_hcp_tr_diffusion_peaks():
+
+    peaks = fetcher.read_dataset_diffusion_peaks(
+        Dataset.HCP_TR_DIFFUSION_PEAKS.name
+    )
+
+    expected_val = (105, 138, 111, 15)
+    obtained_val = peaks.shape
+
+    assert expected_val == obtained_val
+
+
 def test_read_hcp_tr_pft_tracking():
 
     sft = fetcher.read_dataset_tracking(
