@@ -74,6 +74,7 @@ class Dataset(enum.Enum):
     HCP_TR_PVE_MAPS = "hcp_tr_pve_maps"
     HCP_TR_EXCLUDE_INCLUDE_MAPS = "hcp_tr_exclude_include_maps"
     HCP_TR_SURFACES = "hcp_tr_surfaces"
+    HCP_TR_DIFFUSION_PEAKS = "hcp_tr_diffusion_peaks"
     HCP_TR_PFT_TRACKING = "hcp_tr_pft_tracking"
     # ISBI2013_ANAT = "isbi2013_anat"
     # ISBI2013_DWI = "isbi2013_dwi"
@@ -818,6 +819,27 @@ fetch_hcp_tr_surfaces = _make_fetcher(
     unzip=True,
 )
 
+fetch_hcp_tr_diffusion_peaks = _make_fetcher(
+    "fetch_hcp_tr_diffusion_peaks",
+    pjoin(
+        tractodata_home,
+        "datasets",
+        "hcp_tr",
+        "derivatives",
+        "diffusion_peaks",
+        "tractoflow_fsl",
+        "sub-103818_re",
+        "dwi",
+    ),
+    TRACTODATA_DATASETS_URL + "ydquv/",
+    ["download"],
+    ["sub103818_re-dwi_space-MNI152NLin2009cSym_model-CSD_PEAKS.nii.gz"],
+    ["df48de15a52c4d6169a104df41aa6ce5"],
+    data_size="25.2MB",
+    doc="Download HCP Test-Retest subject retest dataset diffusion model peaks",  # noqa E501
+    unzip=False,
+)
+
 fetch_hcp_tr_pft_tracking = _make_fetcher(
     "fetch_hcp_tr_pft_tracking",
     pjoin(
@@ -1285,6 +1307,9 @@ def get_fnames(name):
             2
         ]  # noqa E501
         return sorted([pjoin(folder, f) for f in fnames])
+    elif name == Dataset.HCP_TR_DIFFUSION_PEAKS.name:
+        files, folder = fetch_hcp_tr_diffusion_peaks()
+        return pjoin(folder, list(files.keys())[0])
     elif name == Dataset.HCP_TR_PFT_TRACKING.name:
         files, folder = fetch_hcp_tr_pft_tracking()
         return pjoin(folder, list(files.keys())[0])
