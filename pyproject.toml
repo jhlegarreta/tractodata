@@ -1,6 +1,10 @@
-title = "tractodata TOML configuration file"
-
-# Code formatting configuration
+[build-system]
+requires = [
+    "setuptools >= 45",
+    "wheel",
+    "setuptools_scm >= 6.2",
+]
+build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 79
@@ -28,3 +32,6 @@ exclude ='''
 profile = "black"
 line_length = 79
 src_paths = ["tractodata"]
+
+[tool.setuptools_scm]
+write_to = "tractodata/_version.py"
