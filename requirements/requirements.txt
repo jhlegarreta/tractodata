@@ -1,5 +1,0 @@
-dipy
-nibabel
-numpy
-pandas
-trimeshpy==0.0.2
