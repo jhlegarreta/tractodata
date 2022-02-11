@@ -1,7 +1,3 @@
-title = "tractodata TOML configuration file"
-
-# Code formatting configuration
-
 [tool.black]
 line-length = 79
 target-version = ["py36"]
