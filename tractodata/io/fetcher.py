@@ -253,7 +253,7 @@ def _already_there_msg(folder):
     """Print a message indicating that dataset is already in place."""
 
     msg = "Dataset is already in place.\nIf you want to fetch it again, "
-    msg += "please first remove the file at issue in folder\n{}".format(folder)
+    msg += f"please first remove the file at issue in folder\n{folder}"
     print(msg)
 
 
@@ -367,11 +367,11 @@ def fetch_data(files, folder, data_size=None):
     """
 
     if not os.path.exists(folder):
-        print("Creating new folder\n{}".format(folder))
+        print(f"Creating new folder\n{folder}")
         os.makedirs(folder)
 
     if data_size is not None:
-        print("Data size is approximately {}".format(data_size))
+        print(f"Data size is approximately {data_size}")
 
     all_skip = True
     for f in files:
@@ -382,13 +382,13 @@ def fetch_data(files, folder, data_size=None):
         ):  # noqa E501
             continue
         all_skip = False
-        print("Downloading\n{}\nto\n{}".format(f, folder))
+        print(f"Downloading\n{f}\nto\n{folder}")
         _get_file_data(fullpath, url)
         check_hash(fullpath, _hash)
     if all_skip:
         _already_there_msg(folder)
     else:
-        print("\nFiles successfully downloaded to\n{}".format(folder))
+        print(f"\nFiles successfully downloaded to\n{folder}")
 
 
 def _make_fetcher(
@@ -1213,7 +1213,7 @@ def get_fnames(name):
         Filenames for dataset.
     """
 
-    print("\nDataset: {}".format(name))
+    print(f"\nDataset: {name}")
 
     if name == Dataset.FIBERCUP_ANAT.name:
         files, folder = fetch_fibercup_anat()
