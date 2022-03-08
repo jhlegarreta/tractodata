@@ -240,9 +240,7 @@ def _unknown_label_msg(label):
         Message.
     """
 
-    msg = "Unknown label.\nProvided: {}; Available: {}".format(
-        label, Label.__members__.values()
-    )
+    msg = f"Unknown label.\nProvided: {label}; Available: {Label.__members__.values()}"
     return msg
 
 
