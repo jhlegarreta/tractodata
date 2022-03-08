@@ -228,10 +228,8 @@ def update_progressbar(progress, total_length):
         # Default value if determination of console size fails
         bar_length = 20
     block = int(round(bar_length * progress))
-    size_string = "{0:.2f} MB".format(float(total_length) / (1024 * 1024))
-    text = "\rDownload Progress: [{0}] {1:.2f}%  of {2}".format(
-        "#" * block + "-" * (bar_length - block), progress * 100, size_string
-    )
+    size_string = f"{float(total_length) / (1024 * 1024):.2f} MB"
+    text = rf"Download Progress: [{'#' * block + '-' * (bar_length - block)}] {progress * 100:.2f}%  of {size_string}"
     sys.stdout.write(text)
     sys.stdout.flush()
 
@@ -271,9 +269,7 @@ def _unknown_dataset_msg(name):
         Message.
     """
 
-    msg = "Unknown dataset.\nProvided: {}; Available: {}".format(
-        name, Dataset.__members__.keys()
-    )
+    msg = f"Unknown dataset.\nProvided: {name}; Available: {Dataset.__members__.keys()}"
     return msg
 
 
@@ -314,16 +310,11 @@ def check_hash(filename, stored_hash=None):
         computed_hash = _get_file_hash(filename)
         if stored_hash.lower() != computed_hash:
             msg = (
-                "The downloaded file\n{}\ndoes not have the expected hash "
-                "value of {}.\nInstead, the hash value was {}.\nThis could "
+                f"The downloaded file\n{filename}\ndoes not have the expected hash "
+                f"value of {stored_hash}.\nInstead, the hash value was {computed_hash}.\nThis could "
                 "mean that something is wrong with the file or that the "
                 "upstream file has been updated.\nYou can try downloading "
-                "file again or updating to the newest version of {}".format(
-                    filename,
-                    stored_hash,
-                    computed_hash,
-                    __name__.split(".")[0],
-                )
+                f"file again or updating to the newest version of {__name__.split('.')[0]}"
             )
             raise FetcherError(msg)
 
