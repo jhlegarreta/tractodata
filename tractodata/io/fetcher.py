@@ -1121,8 +1121,8 @@ fetch_ismrm2015_submission_res = _make_fetcher(
     TRACTODATA_DATASETS_URL + "t4m9a/",
     ["download"],
     ["sub02-dwi_space-orig_desc-synth_submission_results_tractography.zip"],
-    ["6f27a599ac4977a5a91f9111c1726665"],
-    data_size="116.8KB",
+    ["41fc57fe116f8b0771fe7e38de1ab4c3"],
+    data_size="171.2KB",
     doc="Download ISMRM 2015 Tractography Challenge submission result data",
     unzip=True,
 )
