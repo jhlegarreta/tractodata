@@ -15,7 +15,6 @@ import nibabel as nib
 import numpy as np
 import numpy.testing as npt
 from dipy.io.streamline import StatefulTractogram
-from nibabel.tmpdirs import TemporaryDirectory
 from trimeshpy import vtk_util as vtk_u
 
 import tractodata.io.fetcher as fetcher
@@ -190,7 +189,7 @@ def test_check_hash():
 def test_make_fetcher():
 
     # Make a fetcher with some test data using a local server
-    with TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
 
         test_data = TEST_FILES["fibercup_T1w"]
         name = "fetch_fibercup_test_data"
@@ -248,7 +247,7 @@ def test_make_fetcher():
         os.chdir(current_dir)
 
     # Make a fetcher with actual data storage
-    with TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
 
         name = "fetch_fibercup_dwi"
         remote_fnames = ["download"]
@@ -296,7 +295,7 @@ def test_make_fetcher():
 def test_fetch_data():
 
     # Fetch some test data using a local server
-    with TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
 
         test_data = TEST_FILES["fibercup_T1w"]
 
