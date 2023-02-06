@@ -4,9 +4,8 @@ import contextlib
 import enum
 import itertools
 import json
+import logging
 import os
-import subprocess
-import sys
 import tarfile
 import zipfile
 from hashlib import md5
@@ -25,6 +24,7 @@ from dipy.io.gradients import read_bvals_bvecs
 # from dipy.io.image import load_nifti, load_nifti_data
 from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.streamline import load_tractogram
+from tqdm.auto import tqdm
 
 from tractodata.io.utils import (
     Label,
@@ -42,6 +42,7 @@ if "TRACTODATA_HOME" in os.environ:
 else:
     tractodata_home = pjoin(os.path.expanduser("~"), ".tractodata")
 
+logger = logging.getLogger(__name__)
 
 TRACTODATA_DATASETS_URL = "https://osf.io/"
 
@@ -211,40 +212,13 @@ def _exclude_dataset_use_permission_files(fnames, permission_fname):
     return [f for f in fnames if permission_fname not in f]
 
 
-def update_progressbar(progress, total_length):
-    """Show progressbar.
-
-    Takes a number between 0 and 1 to indicate progress from 0 to 100%.
-    """
-
-    # Try to set the bar_length according to the console size
-    # noinspection PyBroadException
-    try:
-        columns = subprocess.Popen("tput cols", "r").read()
-        bar_length = int(columns) - 46
-        if bar_length < 1:
-            bar_length = 20
-    except Exception:
-        # Default value if determination of console size fails
-        bar_length = 20
-    block = int(round(bar_length * progress))
-    size_string = f"{float(total_length) / (1024 * 1024):.2f} MB"
-    text = rf"Download Progress: [{'#' * block + '-' * (bar_length - block)}] {progress * 100:.2f}%  of {size_string}"
-    sys.stdout.write(text)
-    sys.stdout.flush()
-
-
 def copyfileobj_withprogress(fsrc, fdst, total_length, length=16 * 1024):
 
-    copied = 0
-    while True:
+    for _ in tqdm(range(0, int(total_length), length), unit=" MB"):
         buf = fsrc.read(length)
         if not buf:
             break
         fdst.write(buf)
-        copied += len(buf)
-        progress = float(copied) / float(total_length)
-        update_progressbar(progress, total_length)
 
 
 def _already_there_msg(folder):
@@ -252,7 +226,7 @@ def _already_there_msg(folder):
 
     msg = "Dataset is already in place.\nIf you want to fetch it again, "
     msg += f"please first remove the file at issue in folder\n{folder}"
-    print(msg)
+    logger.info(msg)
 
 
 def _unknown_dataset_msg(name):
@@ -358,11 +332,11 @@ def fetch_data(files, folder, data_size=None):
     """
 
     if not os.path.exists(folder):
-        print(f"Creating new folder\n{folder}")
+        logger.info(f"Creating new folder\n{folder}")
         os.makedirs(folder)
 
     if data_size is not None:
-        print(f"Data size is approximately {data_size}")
+        logger.info(f"Data size is approximately {data_size}")
 
     all_skip = True
     for f in files:
@@ -373,13 +347,13 @@ def fetch_data(files, folder, data_size=None):
         ):  # noqa E501
             continue
         all_skip = False
-        print(f"Downloading\n{f}\nto\n{folder}")
+        logger.info(f"Downloading\n{f}\nto\n{folder}")
         _get_file_data(fullpath, url)
         check_hash(fullpath, _hash)
     if all_skip:
         _already_there_msg(folder)
     else:
-        print(f"\nFiles successfully downloaded to\n{folder}")
+        logger.info(f"\nFiles successfully downloaded to\n{folder}")
 
 
 def _make_fetcher(
@@ -445,7 +419,7 @@ def _make_fetcher(
         fetch_data(files, folder, data_size)
 
         if msg is not None:
-            print(msg)
+            logger.info(msg)
         if unzip:
             for f in local_fnames:
                 split_ext = os.path.splitext(f)
@@ -1204,7 +1178,7 @@ def get_fnames(name):
         Filenames for dataset.
     """
 
-    print(f"\nDataset: {name}")
+    logger.info(f"\nDataset: {name}")
 
     if name == Dataset.FIBERCUP_ANAT.name:
         files, folder = fetch_fibercup_anat()
