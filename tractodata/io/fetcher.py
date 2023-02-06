@@ -4,6 +4,7 @@ import contextlib
 import enum
 import itertools
 import json
+import logging
 import os
 import tarfile
 import zipfile
@@ -41,6 +42,7 @@ if "TRACTODATA_HOME" in os.environ:
 else:
     tractodata_home = pjoin(os.path.expanduser("~"), ".tractodata")
 
+logger = logging.getLogger(__name__)
 
 TRACTODATA_DATASETS_URL = "https://osf.io/"
 
@@ -224,7 +226,7 @@ def _already_there_msg(folder):
 
     msg = "Dataset is already in place.\nIf you want to fetch it again, "
     msg += f"please first remove the file at issue in folder\n{folder}"
-    print(msg)
+    logger.info(msg)
 
 
 def _unknown_dataset_msg(name):
@@ -330,11 +332,11 @@ def fetch_data(files, folder, data_size=None):
     """
 
     if not os.path.exists(folder):
-        print(f"Creating new folder\n{folder}")
+        logger.info(f"Creating new folder\n{folder}")
         os.makedirs(folder)
 
     if data_size is not None:
-        print(f"Data size is approximately {data_size}")
+        logger.info(f"Data size is approximately {data_size}")
 
     all_skip = True
     for f in files:
@@ -345,13 +347,13 @@ def fetch_data(files, folder, data_size=None):
         ):  # noqa E501
             continue
         all_skip = False
-        print(f"Downloading\n{f}\nto\n{folder}")
+        logger.info(f"Downloading\n{f}\nto\n{folder}")
         _get_file_data(fullpath, url)
         check_hash(fullpath, _hash)
     if all_skip:
         _already_there_msg(folder)
     else:
-        print(f"\nFiles successfully downloaded to\n{folder}")
+        logger.info(f"\nFiles successfully downloaded to\n{folder}")
 
 
 def _make_fetcher(
@@ -417,7 +419,7 @@ def _make_fetcher(
         fetch_data(files, folder, data_size)
 
         if msg is not None:
-            print(msg)
+            logger.info(msg)
         if unzip:
             for f in local_fnames:
                 split_ext = os.path.splitext(f)
@@ -1176,7 +1178,7 @@ def get_fnames(name):
         Filenames for dataset.
     """
 
-    print(f"\nDataset: {name}")
+    logger.info(f"\nDataset: {name}")
 
     if name == Dataset.FIBERCUP_ANAT.name:
         files, folder = fetch_fibercup_anat()
