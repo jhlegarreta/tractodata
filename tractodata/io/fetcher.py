@@ -5,8 +5,6 @@ import enum
 import itertools
 import json
 import os
-import subprocess
-import sys
 import tarfile
 import zipfile
 from hashlib import md5
@@ -25,6 +23,7 @@ from dipy.io.gradients import read_bvals_bvecs
 # from dipy.io.image import load_nifti, load_nifti_data
 from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.streamline import load_tractogram
+from tqdm.auto import tqdm
 
 from tractodata.io.utils import (
     Label,
@@ -211,40 +210,13 @@ def _exclude_dataset_use_permission_files(fnames, permission_fname):
     return [f for f in fnames if permission_fname not in f]
 
 
-def update_progressbar(progress, total_length):
-    """Show progressbar.
-
-    Takes a number between 0 and 1 to indicate progress from 0 to 100%.
-    """
-
-    # Try to set the bar_length according to the console size
-    # noinspection PyBroadException
-    try:
-        columns = subprocess.Popen("tput cols", "r").read()
-        bar_length = int(columns) - 46
-        if bar_length < 1:
-            bar_length = 20
-    except Exception:
-        # Default value if determination of console size fails
-        bar_length = 20
-    block = int(round(bar_length * progress))
-    size_string = f"{float(total_length) / (1024 * 1024):.2f} MB"
-    text = rf"Download Progress: [{'#' * block + '-' * (bar_length - block)}] {progress * 100:.2f}%  of {size_string}"
-    sys.stdout.write(text)
-    sys.stdout.flush()
-
-
 def copyfileobj_withprogress(fsrc, fdst, total_length, length=16 * 1024):
 
-    copied = 0
-    while True:
+    for _ in tqdm(range(0, int(total_length), length), unit=" MB"):
         buf = fsrc.read(length)
         if not buf:
             break
         fdst.write(buf)
-        copied += len(buf)
-        progress = float(copied) / float(total_length)
-        update_progressbar(progress, total_length)
 
 
 def _already_there_msg(folder):

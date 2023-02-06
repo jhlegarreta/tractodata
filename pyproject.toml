@@ -22,6 +22,7 @@ dependencies = [
     "numpy",
     "pandas",
     "trimeshpy == 0.0.2",
+    "tqdm",
 ]
 description = "Tractography data repository to be used for tractography research"
 dynamic = ["version"]
