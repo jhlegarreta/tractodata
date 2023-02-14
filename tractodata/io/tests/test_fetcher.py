@@ -19,7 +19,11 @@ from trimeshpy import vtk_util as vtk_u
 
 import tractodata.io.fetcher as fetcher
 from tractodata.data import TEST_FILES
-from tractodata.io.fetcher import TRACTODATA_DATASETS_URL, Dataset
+from tractodata.io.fetcher import (
+    TRACTODATA_DATASETS_URL,
+    Dataset,
+    _unknown_dataset_msg,
+)
 from tractodata.io.utils import (
     DTIMap,
     Endpoint,
@@ -186,6 +190,96 @@ def test_check_hash():
     npt.assert_raises(fetcher.FetcherError, fetcher.check_hash, fname, "foo")
 
 
+def test_get_fetcher_data():
+
+    dataset_keys = list(Dataset.__members__.keys())
+
+    for name in dataset_keys:
+
+        params = fetcher._get_fetcher_data(name)
+
+        if name == Dataset.FIBERCUP_ANAT.name:
+            assert params == fetcher.fibercup_anat
+        elif name == Dataset.FIBERCUP_DWI.name:
+            assert params == fetcher.fibercup_dwi
+        elif name == Dataset.FIBERCUP_TISSUE_MAPS.name:
+            assert params == fetcher.fibercup_tissue_maps
+        elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
+            assert params == fetcher.fibercup_synth_tracking
+        elif name == Dataset.FIBERCUP_SYNTH_BUNDLING.name:
+            assert params == fetcher.fibercup_synth_bundling
+        elif name == Dataset.FIBERCUP_SYNTH_BUNDLE_CENTROIDS.name:
+            assert params == fetcher.fibercup_synth_bundle_centroids
+        elif name == Dataset.FIBERCUP_BUNDLE_MASKS.name:
+            assert params == fetcher.fibercup_bundle_masks
+        elif name == Dataset.FIBERCUP_BUNDLE_ENDPOINT_MASKS.name:
+            assert params == fetcher.fibercup_bundle_endpoint_masks
+        elif name == Dataset.FIBERCUP_DIFFUSION_PEAKS.name:
+            assert params == fetcher.fibercup_diffusion_peaks
+        elif name == Dataset.FIBERCUP_LOCAL_PROB_TRACKING.name:
+            assert params == fetcher.fibercup_local_prob_tracking
+        elif name == Dataset.FIBERCUP_LOCAL_PROB_BUNDLING.name:
+            assert params == fetcher.fibercup_local_prob_bundling
+        elif name == Dataset.FIBERCUP_TRACKING_EVALUATION_CONFIG.name:
+            assert params == fetcher.fibercup_tracking_evaluation_config
+        elif name == Dataset.HCP_TR_ANAT.name:
+            assert params == fetcher.hcp_tr_anat
+        elif name == Dataset.HCP_TR_DTI_MAPS.name:
+            assert params == fetcher.hcp_tr_dti_maps
+        elif name == Dataset.HCP_TR_EXCLUDE_INCLUDE_MAPS.name:
+            assert params == fetcher.hcp_tr_exclude_include_maps
+        elif name == Dataset.HCP_TR_PVE_MAPS.name:
+            assert params == fetcher.hcp_tr_pve_maps
+        elif name == Dataset.HCP_TR_SURFACES.name:
+            assert params == fetcher.hcp_tr_surfaces
+        elif name == Dataset.HCP_TR_DIFFUSION_PEAKS.name:
+            assert params == fetcher.hcp_tr_diffusion_peaks
+        elif name == Dataset.HCP_TR_PFT_TRACKING.name:
+            assert params == fetcher.hcp_tr_pft_tracking
+        elif name == Dataset.ISMRM2015_ANAT.name:
+            assert params == fetcher.ismrm2015_anat
+        elif name == Dataset.ISMRM2015_DTI_MAPS.name:
+            assert params == fetcher.ismrm2015_dti_maps
+        elif name == Dataset.ISMRM2015_DWI.name:
+            assert params == fetcher.ismrm2015_dwi
+        elif name == Dataset.ISMRM2015_DWI_PREPROC.name:
+            assert params == fetcher.ismrm2015_dwi_preproc
+        elif name == Dataset.ISMRM2015_TISSUE_MAPS.name:
+            assert params == fetcher.ismrm2015_tissue_maps
+        elif name == Dataset.ISMRM2015_SURFACES.name:
+            assert params == fetcher.ismrm2015_surfaces
+        elif name == Dataset.ISMRM2015_SYNTH_TRACKING.name:
+            assert params == fetcher.ismrm2015_synth_tracking
+        elif name == Dataset.ISMRM2015_SYNTH_BUNDLING.name:
+            assert params == fetcher.ismrm2015_synth_bundling
+        elif name == Dataset.ISMRM2015_BUNDLE_MASKS.name:
+            assert params == fetcher.ismrm2015_bundle_masks
+        elif name == Dataset.ISMRM2015_BUNDLE_ENDPOINT_MASKS.name:
+            assert params == fetcher.ismrm2015_bundle_endpoint_masks
+        elif name == Dataset.ISMRM2015_CHALLENGE_SUBMISSION.name:
+            assert params == fetcher.ismrm2015_submission_res
+        elif name == Dataset.ISMRM2015_TRACKING_EVALUATION_CONFIG.name:
+            assert params == fetcher.ismrm2015_tracking_evaluation_config
+        elif name == Dataset.MNI2009CNONLINSYMM_ANAT.name:
+            assert params == fetcher.mni2009cnonlinsymm_anat
+        elif name == Dataset.MNI2009CNONLINSYMM_SURFACES.name:
+            assert params == fetcher.mni2009cnonlinsymm_surfaces
+        else:
+            assert params == fetcher.DatasetError(_unknown_dataset_msg(name))
+
+
+def test_compose_fetcher_name():
+
+    dataset_keys = list(Dataset.__members__.keys())
+
+    for name in dataset_keys:
+
+        expected_val = "fetcher_" + Dataset[name].value
+        obtained_val = fetcher._compose_fetcher_name(name)
+
+        assert expected_val == obtained_val
+
+
 def test_make_fetcher():
 
     # Make a fetcher with some test data using a local server
@@ -195,7 +289,7 @@ def test_make_fetcher():
         name = "fetch_fibercup_test_data"
         remote_fnames = [op.sep + op.split(test_data)[-1]]
         local_fnames = ["fibercup_name"]
-        doc = "Download Fiber Cup dataset anatomy data"
+        doc = "Fiber Cup dataset anatomy data"
         data_size = "543B"
         msg = None
         unzip = False
@@ -252,7 +346,7 @@ def test_make_fetcher():
         name = "fetch_fibercup_dwi"
         remote_fnames = ["download"]
         local_fnames = ["sub01-dwi.zip"]
-        doc = "Download Fiber Cup dataset diffusion data"
+        doc = "Fiber Cup dataset diffusion data"
         data_size = "0.39MB"
         msg = None
         unzip = True

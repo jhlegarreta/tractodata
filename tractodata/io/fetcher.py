@@ -445,32 +445,30 @@ def _make_fetcher(
     return fetcher
 
 
-fetch_fibercup_anat = _make_fetcher(
-    "fetch_fibercup_anat",
+fibercup_anat = (
     pjoin(tractodata_home, "datasets", "fibercup", "raw", "sub-01", "anat"),
     TRACTODATA_DATASETS_URL + "2xmgw/",
     ["download"],
     ["sub01-T1w.nii.gz"],
     ["7170d0192fa00b5ef069f8e7c274950c"],
-    data_size="543B",
-    doc="Download Fiber Cup dataset anatomy data",
-    unzip=False,
+    "543B",
+    "Fiber Cup dataset anatomy data",
+    False,
 )
 
-fetch_fibercup_dwi = _make_fetcher(
-    "fetch_fibercup_dwi",
+fibercup_dwi = (
     pjoin(tractodata_home, "datasets", "fibercup", "raw", "sub-01", "dwi"),
     TRACTODATA_DATASETS_URL + "br4ds/",
     ["download"],
     ["sub01-dwi.zip"],
     ["705396981f1bcda51de12098db968390"],
-    data_size="0.39MB",
-    doc="Download Fiber Cup dataset diffusion data",
-    unzip=True,
+    "Fiber Cup dataset diffusion data",
+    "0.39MB",
+    "",
+    True,
 )
 
-fetch_fibercup_tissue_maps = _make_fetcher(
-    "fetch_fibercup_tissue_maps",
+fibercup_tissue_maps = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -485,13 +483,13 @@ fetch_fibercup_tissue_maps = _make_fetcher(
     ["download"],
     ["sub01-T1w_space-orig_dseg.zip"],
     ["98e09f049676fe35c593baa33d1d0524"],
-    data_size="808B",
-    doc="Download Fiber Cup dataset tissue maps",
-    unzip=True,
+    "Fiber Cup dataset tissue maps",
+    "808B",
+    "",
+    True,
 )
 
-fetch_fibercup_synth_tracking = _make_fetcher(
-    "fetch_fibercup_synth_tracking",
+fibercup_synth_tracking = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -506,13 +504,13 @@ fetch_fibercup_synth_tracking = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_desc-synth_tractography.trk"],
     ["9b46bbd9381f589037b5b0077c91ed55"],
-    data_size="10.35MB",
-    doc="Download Fiber Cup dataset synthetic tracking data",
-    unzip=False,
+    "Download Fiber Cup dataset synthetic tracking data",
+    "10.35MB",
+    "",
+    False,
 )
 
-fetch_fibercup_synth_bundling = _make_fetcher(
-    "fetch_fibercup_synth_bundling",
+fibercup_synth_bundling = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -527,13 +525,13 @@ fetch_fibercup_synth_bundling = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip"],
     ["60589568bc13d4093af5bb282d78e9ff"],
-    data_size="8.55MB",
-    doc="Download Fiber Cup dataset synthetic bundling data",
-    unzip=True,
+    "Fiber Cup dataset synthetic bundling data",
+    "8.55MB",
+    "",
+    True,
 )
 
-fetch_fibercup_synth_bundle_centroids = _make_fetcher(
-    "fetch_fibercup_synth_bundle_centroids",
+fibercup_synth_bundle_centroids = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -548,13 +546,13 @@ fetch_fibercup_synth_bundle_centroids = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_desc-synth_subset-bundles_centroid.zip"],
     ["c60f4206dd0dfc1f1e1a4f282935eee4"],
-    data_size="20.7KB",
-    doc="Download Fiber Cup dataset synthetic QuickBundles bundle centroid data",  # noqa E501
-    unzip=True,
+    "Fiber Cup dataset synthetic QuickBundles bundle centroid data",
+    "20.7KB",
+    "",
+    True,
 )
 
-fetch_fibercup_bundle_masks = _make_fetcher(
-    "fetch_fibercup_bundle_masks",
+fibercup_bundle_masks = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -569,13 +567,13 @@ fetch_fibercup_bundle_masks = _make_fetcher(
     ["download"],
     ["sub01-T1w_space-orig_desc-synth_subset-bundles_tractography.zip"],
     ["e46d1e634e0c5b6a062d2da03edf7c0a"],
-    data_size="0.5MB",
-    doc="Download Fiber Cup dataset synthetic bundle masks",
-    unzip=True,
+    "Fiber Cup dataset synthetic bundle masks",
+    "0.5MB",
+    "",
+    True,
 )
 
-fetch_fibercup_bundle_endpoint_masks = _make_fetcher(
-    "fetch_fibercup_bundle_endpoint_masks",
+fibercup_bundle_endpoint_masks = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -592,13 +590,13 @@ fetch_fibercup_bundle_endpoint_masks = _make_fetcher(
         "sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip"
     ],  # noqa E501
     ["ad8efab1c4743aa83df242c77b61c102"],
-    data_size="6.6KB",
-    doc="Download Fiber Cup dataset synthetic bundle endpoint masks",
-    unzip=True,
+    "Fiber Cup dataset synthetic bundle endpoint masks",
+    "6.6KB",
+    "",
+    True,
 )
 
-fetch_fibercup_diffusion_peaks = _make_fetcher(
-    "fetch_fibercup_diffusion_peaks",
+fibercup_diffusion_peaks = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -613,13 +611,13 @@ fetch_fibercup_diffusion_peaks = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_model-CSD_PEAKS.nii.gz"],
     ["1914dc2c9c26efaf181058f5b4f9480c"],
-    data_size="48KB",
-    doc="Download Fiber Cup dataset diffusion model peaks",
-    unzip=False,
+    "Fiber Cup dataset diffusion model peaks",
+    "48KB",
+    "",
+    False,
 )
 
-fetch_fibercup_local_prob_tracking = _make_fetcher(
-    "fetch_fibercup_local_prob_tracking",
+fibercup_local_prob_tracking = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -634,13 +632,13 @@ fetch_fibercup_local_prob_tracking = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_desc-PROB_tractography.trk"],
     ["0136b3accd6314e684426eb4e21b99b7"],
-    data_size="16MB",
-    doc="Download Fiber Cup dataset local probabilistic tracking data",
-    unzip=False,
+    "Fiber Cup dataset local probabilistic tracking data",
+    "16MB",
+    "",
+    False,
 )
 
-fetch_fibercup_local_prob_bundling = _make_fetcher(
-    "fetch_fibercup_local_prob_bundling",
+fibercup_local_prob_bundling = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -655,13 +653,13 @@ fetch_fibercup_local_prob_bundling = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_desc-PROB_subset-bundles_tractography.zip"],
     ["399af174b025b03dcada6632cb759591"],
-    data_size="2.1MB",
-    doc="Download Fiber Cup dataset local probabilistic bundling data",
-    unzip=True,
+    "Fiber Cup dataset local probabilistic bundling data",
+    "2.1MB",
+    "",
+    True,
 )
 
-fetch_fibercup_tracking_evaluation_config = _make_fetcher(
-    "fetch_fibercup_tracking_evaluation_config",
+fibercup_tracking_evaluation_config = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -674,13 +672,13 @@ fetch_fibercup_tracking_evaluation_config = _make_fetcher(
     ["download"],
     ["tracking_evaluation_config.json"],
     ["6399cb13a9600acee1ad8fe69437a5af"],
-    data_size="917B",
-    doc="Download Fiber Cup dataset tracking evaluation config file",
-    unzip=False,
+    "Fiber Cup dataset tracking evaluation config file",
+    "917B",
+    "",
+    False,
 )
 
-fetch_hcp_tr_anat = _make_fetcher(
-    "fetch_hcp_tr_anat",
+hcp_tr_anat = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -695,13 +693,13 @@ fetch_hcp_tr_anat = _make_fetcher(
     ["download"],
     ["sub103818_re-T1w_space-MNI152NLin2009cSym.nii.gz"],
     ["3e0adbf95d5c48519bb00f1492f52e39"],
-    data_size="3.6MB",
-    doc="Download HCP Test-Retest subject retest dataset anatomy data",
-    unzip=False,
+    "HCP Test-Retest subject retest dataset anatomy data",
+    "3.6MB",
+    "",
+    False,
 )
 
-fetch_hcp_tr_dti_maps = _make_fetcher(
-    "fetch_hcp_tr_dti_maps",
+hcp_tr_dti_maps = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -716,13 +714,13 @@ fetch_hcp_tr_dti_maps = _make_fetcher(
     ["download"],
     ["sub103818_re-dwi_space-MNI152NLin2009cSym_model-DTI.zip"],
     ["1a52dd87c4a9519435be2d81ee1e9d76"],
-    data_size="2.8MB",
-    doc="Download HCP Test-Retest subject retest dataset DTI maps",
-    unzip=True,
+    "HCP Test-Retest subject retest dataset DTI maps",
+    "2.8MB",
+    "",
+    True,
 )
 
-fetch_hcp_tr_pve_maps = _make_fetcher(
-    "fetch_hcp_tr_pve_maps",
+hcp_tr_pve_maps = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -737,13 +735,13 @@ fetch_hcp_tr_pve_maps = _make_fetcher(
     ["download"],
     ["sub103818_re-T1w_space-MNI152NLin2009cSym_probseg.zip"],
     ["5cefd06349f18a2f05a3fea1992a7eca"],
-    data_size="1.6MB",
-    doc="Download HCP Test-Retest subject retest dataset PVE map data",
-    unzip=True,
+    "HCP Test-Retest subject retest dataset PVE map data",
+    "1.6MB",
+    "",
+    True,
 )
 
-fetch_hcp_tr_exclude_include_maps = _make_fetcher(
-    "fetch_hcp_tr_exclude_include_maps",
+hcp_tr_exclude_include_maps = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -758,13 +756,13 @@ fetch_hcp_tr_exclude_include_maps = _make_fetcher(
     ["download"],
     ["sub103818_re-T1w_space-MNI152NLin2009cSym_exclude_include.zip"],
     ["574692ec2baf7fec8d2381c5be48a408"],
-    data_size="1.3MB",
-    doc="Download HCP Test-Retest subject retest dataset exclude/include map data",
-    unzip=True,
+    "HCP Test-Retest subject retest dataset exclude/include map data",
+    "1.3MB",
+    "",
+    True,
 )
 
-fetch_hcp_tr_surfaces = _make_fetcher(
-    "fetch_hcp_tr_surfaces",
+hcp_tr_surfaces = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -779,13 +777,13 @@ fetch_hcp_tr_surfaces = _make_fetcher(
     ["download"],
     ["sub103818_re-T1w_space-MNI152NLin2009cSym_LPS.surf.zip"],
     ["0fa063e5b648a7b64d11ae0948573043"],
-    data_size="3.9MB",
-    doc="Download HCP Test-Retest subject retest dataset surface data",
-    unzip=True,
+    "HCP Test-Retest subject retest dataset surface data",
+    "3.9MB",
+    "",
+    True,
 )
 
-fetch_hcp_tr_diffusion_peaks = _make_fetcher(
-    "fetch_hcp_tr_diffusion_peaks",
+hcp_tr_diffusion_peaks = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -800,13 +798,13 @@ fetch_hcp_tr_diffusion_peaks = _make_fetcher(
     ["download"],
     ["sub103818_re-dwi_space-MNI152NLin2009cSym_model-CSD_PEAKS.nii.gz"],
     ["df48de15a52c4d6169a104df41aa6ce5"],
-    data_size="25.2MB",
-    doc="Download HCP Test-Retest subject retest dataset diffusion model peaks",  # noqa E501
-    unzip=False,
+    "HCP Test-Retest subject retest dataset diffusion model peaks",
+    "25.2MB",
+    "",
+    False,
 )
 
-fetch_hcp_tr_pft_tracking = _make_fetcher(
-    "fetch_hcp_tr_pft_tracking",
+hcp_tr_pft_tracking = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -821,13 +819,13 @@ fetch_hcp_tr_pft_tracking = _make_fetcher(
     ["download"],
     ["sub103818_re-dwi_space-MNI152NLin2009cSym_desc-PFT_tractography.trk"],
     ["dbc59743f56e6372018359613a6ff262"],
-    data_size="4.2MB",
-    doc="Download HCP Test-Retest subject retest dataset PFT tracking data",
-    unzip=False,
+    "HCP Test-Retest subject retest dataset PFT tracking data",
+    "4.2MB",
+    "",
+    False,
 )
 
-fetch_isbi2013_anat = _make_fetcher(
-    "fetch_isbi2013_anat",
+isbi2013_anat = (
     pjoin(tractodata_home, "datasets", "isbi2013", "raw", "sub-01", "anat"),
     TRACTODATA_DATASETS_URL
     + "datasets/"
@@ -838,13 +836,13 @@ fetch_isbi2013_anat = _make_fetcher(
     ["T1w.nii.gz"],
     ["T1w.nii.gz"],
     ["file_SHA", "file_SHA"],
-    data_size="12KB",
-    doc="Download ISBI 2013 HARDI Reconstruction Challenge dataset anatomy data",  # noqa E501
-    unzip=False,
+    "ISBI 2013 HARDI Reconstruction Challenge dataset anatomy data",
+    "12KB",
+    "",
+    False,
 )
 
-fetch_isbi2013_dwi = _make_fetcher(
-    "fetch_isbi2013_dwi",
+isbi2013_dwi = _make_fetcher(
     pjoin(tractodata_home, "datasets", "isbi2013", "raw", "sub-01", "dwi"),
     TRACTODATA_DATASETS_URL
     + "datasets/"
@@ -855,13 +853,13 @@ fetch_isbi2013_dwi = _make_fetcher(
     ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
     ["dwi.nii.gz", "dwi.bvals", "dwi.bvecs"],
     ["file1_SHA", "file2_SHA", "file3_SHA"],
-    data_size="12KB",
-    doc="Download ISBI 2013 HARDI Reconstruction Challenge diffusion data",
-    unzip=True,
+    "ISBI 2013 HARDI Reconstruction Challenge diffusion data",
+    "12KB",
+    "",
+    True,
 )
 
-fetch_isbi2013_tractography = _make_fetcher(
-    "fetch_isbi2013_tractography",
+isbi2013_tractography = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -881,37 +879,37 @@ fetch_isbi2013_tractography = _make_fetcher(
     ["trk", "trk", "trk"],
     ["trk", "trk", "trk"],
     ["file1_SHA", "file2_SHA", "file3_SHA"],
-    data_size="12KB",
-    doc="Download ISBI 2013 HARDI Reconstruction Challenge tractography data",
-    unzip=True,
+    "ISBI 2013 HARDI Reconstruction Challenge tractography data",
+    "12KB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_anat = _make_fetcher(
-    "fetch_ismrm2015_anat",
+ismrm2015_anat = (
     pjoin(tractodata_home, "datasets", "ismrm2015", "raw", "sub-01", "anat"),
     TRACTODATA_DATASETS_URL + "gdvch/",
     ["download"],
     ["sub01-T1w.nii.gz"],
     ["65af72af2824abce0243cb09555e3a6c"],
-    data_size="7.3MB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset anatomy data",
-    unzip=False,
+    "ISMRM 2015 Tractography Challenge dataset anatomy data",
+    "7.3MB",
+    "",
+    False,
 )
 
-fetch_ismrm2015_dwi = _make_fetcher(
-    "fetch_ismrm2015_dwi",
+ismrm2015_dwi = (
     pjoin(tractodata_home, "datasets", "ismrm2015", "raw", "sub-01", "dwi"),
     TRACTODATA_DATASETS_URL + "4s9ev/",
     ["download"],
     ["sub01-dwi.zip"],
     ["3f228979ca1960f25aa9abc14dc708b8"],
-    data_size="7.1MB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset diffusion data",
-    unzip=True,
+    "ISMRM 2015 Tractography Challenge dataset diffusion data",
+    "7.1MB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_dwi_preproc = _make_fetcher(
-    "fetch_ismrm2015_dwi_preproc",
+ismrm2015_dwi_preproc = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -926,13 +924,13 @@ fetch_ismrm2015_dwi_preproc = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_res-t1.zip"],
     ["469a7817545cc0973f4f651b3ed2c6d8"],
-    data_size="54.8MB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset pre-processed diffusion data",  # noqa E501
-    unzip=True,
+    "ISMRM 2015 Tractography Challenge dataset pre-processed diffusion data",
+    "54.8MB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_tissue_maps = _make_fetcher(
-    "fetch_ismrm2015_tissue_maps",
+ismrm2015_tissue_maps = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -947,13 +945,13 @@ fetch_ismrm2015_tissue_maps = _make_fetcher(
     ["download"],
     ["sub01-T1w_space-orig_dseg.zip"],
     ["04c1518480d79d603b126e2c436c697a"],
-    data_size="205.9KB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset tissue maps",
-    unzip=True,
+    "ISMRM 2015 Tractography Challenge dataset tissue maps",
+    "205.9KB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_surfaces = _make_fetcher(
-    "fetch_ismrm2015_surfaces",
+ismrm2015_surfaces = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -968,13 +966,13 @@ fetch_ismrm2015_surfaces = _make_fetcher(
     ["download"],
     ["sub01-T1w_space-orig_pial.surf.zip"],
     ["33ea5dcd1e863eb4dc8c3063bf3d89fd"],
-    data_size="3.7MB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset surface data",
-    unzip=True,
+    "ISMRM 2015 Tractography Challenge dataset surface data",
+    "3.7MB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_dti_maps = _make_fetcher(
-    "fetch_ismrm2015_dti_maps",
+ismrm2015_dti_maps = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -989,13 +987,13 @@ fetch_ismrm2015_dti_maps = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_desc-WLS_model-DTI.zip"],
     ["ea30620705f123ca6dffcfce9330d0ac"],
-    data_size="5.5MB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset DTI maps",
-    unzip=True,
+    "ISMRM 2015 Tractography Challenge dataset DTI maps",
+    "5.5MB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_synth_tracking = _make_fetcher(
-    "fetch_ismrm2015_synth_tracking",
+ismrm2015_synth_tracking = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -1010,13 +1008,13 @@ fetch_ismrm2015_synth_tracking = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_desc-synth_tractography.trk"],
     ["2a72eeb2949285176344eca31f0b3a39"],
-    data_size="235.8MB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset synthetic tracking data",  # noqa E501
-    unzip=False,
+    "ISMRM 2015 Tractography Challenge dataset synthetic tracking data",
+    "235.8MB",
+    "",
+    False,
 )
 
-fetch_ismrm2015_synth_bundling = _make_fetcher(
-    "fetch_ismrm2015_synth_bundling",
+ismrm2015_synth_bundling = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -1031,13 +1029,13 @@ fetch_ismrm2015_synth_bundling = _make_fetcher(
     ["download"],
     ["sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip"],
     ["69daad08e5093fd3eff9a2fbf26777bc"],
-    data_size="217.6MB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset synthetic bundling data",  # noqa E501
-    unzip=True,
+    "ISMRM 2015 Tractography Challenge dataset synthetic bundling data",
+    "217.6MB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_bundle_masks = _make_fetcher(
-    "fetch_ismrm2015_bundle_masks",
+ismrm2015_bundle_masks = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -1052,13 +1050,13 @@ fetch_ismrm2015_bundle_masks = _make_fetcher(
     ["download"],
     ["sub01-T1w_space-orig_desc-synth_subset-bundles_tractography.zip"],
     ["56cd19ba6b57875e582d5d704ec0312f"],
-    data_size="543.3KB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset synthetic bundle masks",  # noqa E501
-    unzip=True,
+    "ISMRM 2015 Tractography Challenge dataset synthetic bundle masks",
+    "543.3KB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_bundle_endpoint_masks = _make_fetcher(
-    "fetch_ismrm2015_bundle_endpoint_masks",
+ismrm2015_bundle_endpoint_masks = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -1075,13 +1073,13 @@ fetch_ismrm2015_bundle_endpoint_masks = _make_fetcher(
         "sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip"
     ],  # noqa E501
     ["30d14a729cb100aca6386230cef45284"],
-    data_size="203.3KB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset synthetic bundle endpoint masks",  # noqa E501
-    unzip=True,
+    "ISMRM 2015 Tractography Challenge dataset synthetic bundle endpoint masks",  # noqa E501
+    "203.3KB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_submission_res = _make_fetcher(
-    "fetch_ismrm2015_submission_res",
+ismrm2015_submission_res = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -1096,13 +1094,13 @@ fetch_ismrm2015_submission_res = _make_fetcher(
     ["download"],
     ["sub02-dwi_space-orig_desc-synth_submission_results_tractography.zip"],
     ["74389b90c422f430b8a39ce4cb3d10d8"],
-    data_size="172KB",
-    doc="Download ISMRM 2015 Tractography Challenge submission result data",
-    unzip=True,
+    "ISMRM 2015 Tractography Challenge submission result data",
+    "172KB",
+    "",
+    True,
 )
 
-fetch_ismrm2015_tracking_evaluation_config = _make_fetcher(
-    "fetch_ismrm2015_tracking_evaluation_config",
+ismrm2015_tracking_evaluation_config = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -1115,13 +1113,13 @@ fetch_ismrm2015_tracking_evaluation_config = _make_fetcher(
     ["download"],
     ["tracking_evaluation_config.json"],
     ["164489da0dc4fb069212543c669ba284"],
-    data_size="1.4KB",
-    doc="Download ISMRM 2015 Tractography Challenge dataset tracking evaluation config file",  # noqa E501
-    unzip=False,
+    "ISMRM 2015 Tractography Challenge dataset tracking evaluation config file",  # noqa E501
+    "1.4KB",
+    "",
+    False,
 )
 
-fetch_mni2009cnonlinsymm_anat = _make_fetcher(
-    "fetch_mni2009cnonlinsymm_anat",
+mni2009cnonlinsymm_anat = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -1136,14 +1134,14 @@ fetch_mni2009cnonlinsymm_anat = _make_fetcher(
     ["download"],
     ["sub01-T1w.zip"],
     ["0e3455597421e8fb14321d236bae45c9"],
-    data_size="4.2MB",
-    doc="Download MNI ICBM 2009c Nonlinear Symmetric 1×1x1mm template dataset "
+    "MNI ICBM 2009c Nonlinear Symmetric 1×1x1mm template dataset "
     "brain-masked anatomy data",
-    unzip=True,
+    "4.2MB",
+    "",
+    True,
 )
 
-fetch_mni2009cnonlinsymm_surfaces = _make_fetcher(
-    "fetch_mni2009cnonlinsymm_surfaces",
+mni2009cnonlinsymm_surfaces = (
     pjoin(
         tractodata_home,
         "datasets",
@@ -1158,11 +1156,120 @@ fetch_mni2009cnonlinsymm_surfaces = _make_fetcher(
     ["download"],
     ["sub01-T1w_space-orig_pial.surf.zip"],
     ["b36a14f78ff006a6b881414d45b1111c"],
-    data_size="8.1MB",
-    doc="Download MNI ICBM 2009c Nonlinear Symmetric 1×1x1mm template dataset "
-    "surface data",
-    unzip=True,
+    "MNI ICBM 2009c Nonlinear Symmetric 1×1x1mm template dataset surface data",
+    "8.1MB",
+    "",
+    True,
 )
+
+
+def _get_fetcher_data(name):
+    """Provide the fetcher method parameters corresponding to the method name.
+
+    Returns
+    -------
+    Tuple
+        Fetcher method parameters.
+    """
+
+    if name == Dataset.FIBERCUP_ANAT.name:
+        return fibercup_anat
+    elif name == Dataset.FIBERCUP_DWI.name:
+        return fibercup_dwi
+    elif name == Dataset.FIBERCUP_TISSUE_MAPS.name:
+        return fibercup_tissue_maps
+    elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
+        return fibercup_synth_tracking
+    elif name == Dataset.FIBERCUP_SYNTH_BUNDLING.name:
+        return fibercup_synth_bundling
+    elif name == Dataset.FIBERCUP_SYNTH_BUNDLE_CENTROIDS.name:
+        return fibercup_synth_bundle_centroids
+    elif name == Dataset.FIBERCUP_BUNDLE_MASKS.name:
+        return fibercup_bundle_masks
+    elif name == Dataset.FIBERCUP_BUNDLE_ENDPOINT_MASKS.name:
+        return fibercup_bundle_endpoint_masks
+    elif name == Dataset.FIBERCUP_DIFFUSION_PEAKS.name:
+        return fibercup_diffusion_peaks
+    elif name == Dataset.FIBERCUP_LOCAL_PROB_TRACKING.name:
+        return fibercup_local_prob_tracking
+    elif name == Dataset.FIBERCUP_LOCAL_PROB_BUNDLING.name:
+        return fibercup_local_prob_bundling
+    elif name == Dataset.FIBERCUP_TRACKING_EVALUATION_CONFIG.name:
+        return fibercup_tracking_evaluation_config
+    elif name == Dataset.HCP_TR_ANAT.name:
+        return hcp_tr_anat
+    elif name == Dataset.HCP_TR_DTI_MAPS.name:
+        return hcp_tr_dti_maps
+    elif name == Dataset.HCP_TR_EXCLUDE_INCLUDE_MAPS.name:
+        return hcp_tr_exclude_include_maps
+    elif name == Dataset.HCP_TR_PVE_MAPS.name:
+        return hcp_tr_pve_maps
+    elif name == Dataset.HCP_TR_SURFACES.name:
+        return hcp_tr_surfaces
+    elif name == Dataset.HCP_TR_DIFFUSION_PEAKS.name:
+        return hcp_tr_diffusion_peaks
+    elif name == Dataset.HCP_TR_PFT_TRACKING.name:
+        return hcp_tr_pft_tracking
+    # elif name == Dataset.ISBI2013_ANAT.name:
+    #   files, folder = isbi2013_anat()
+    #   return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
+    # elif name == Dataset.ISBI2013_DWI.name:
+    #   files, folder = isbi2013_dwi()
+    #   fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
+    #   fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
+    #   fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
+    #   return fraw, fbval, fbvec
+    # elif name == Dataset.ISBI2013_TRACTOGRAPHY.name:
+    #   files, folder = isbi2013_tractography()
+    #   for fname in list(files.keys()):
+    #       fnames = pjoin(folder, fname)
+    #   return fnames
+    elif name == Dataset.ISMRM2015_ANAT.name:
+        return ismrm2015_anat
+    elif name == Dataset.ISMRM2015_DTI_MAPS.name:
+        return ismrm2015_dti_maps
+    elif name == Dataset.ISMRM2015_DWI.name:
+        return ismrm2015_dwi
+    elif name == Dataset.ISMRM2015_DWI_PREPROC.name:
+        return ismrm2015_dwi_preproc
+    elif name == Dataset.ISMRM2015_TISSUE_MAPS.name:
+        return ismrm2015_tissue_maps
+    elif name == Dataset.ISMRM2015_SURFACES.name:
+        return ismrm2015_surfaces
+    elif name == Dataset.ISMRM2015_SYNTH_TRACKING.name:
+        return ismrm2015_synth_tracking
+    elif name == Dataset.ISMRM2015_SYNTH_BUNDLING.name:
+        return ismrm2015_synth_bundling
+    elif name == Dataset.ISMRM2015_BUNDLE_MASKS.name:
+        return ismrm2015_bundle_masks
+    elif name == Dataset.ISMRM2015_BUNDLE_ENDPOINT_MASKS.name:
+        return ismrm2015_bundle_endpoint_masks
+    elif name == Dataset.ISMRM2015_CHALLENGE_SUBMISSION.name:
+        return ismrm2015_submission_res
+    elif name == Dataset.ISMRM2015_TRACKING_EVALUATION_CONFIG.name:
+        return ismrm2015_tracking_evaluation_config
+    elif name == Dataset.MNI2009CNONLINSYMM_ANAT.name:
+        return mni2009cnonlinsymm_anat
+    elif name == Dataset.MNI2009CNONLINSYMM_SURFACES.name:
+        return mni2009cnonlinsymm_surfaces
+    else:
+        return DatasetError(_unknown_dataset_msg(name))
+
+
+def _compose_fetcher_name(name):
+    """Compose a name for the fetcher given the dataset name.
+
+    Parameters
+    ----------
+    name : string
+        Dataset name.
+    Returns
+    -------
+    string
+        Fetcher name for dataset.
+    """
+
+    return "fetcher_" + Dataset[name].value
 
 
 def get_fnames(name):
@@ -1180,193 +1287,23 @@ def get_fnames(name):
 
     logger.info(f"\nDataset: {name}")
 
-    if name == Dataset.FIBERCUP_ANAT.name:
-        files, folder = fetch_fibercup_anat()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.FIBERCUP_DWI.name:
-        files, folder = fetch_fibercup_dwi()
-        fnames = files["sub01-dwi.zip"][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.FIBERCUP_TISSUE_MAPS.name:
-        files, folder = fetch_fibercup_tissue_maps()
-        fnames = files["sub01-T1w_space-orig_dseg.zip"][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.FIBERCUP_SYNTH_TRACKING.name:
-        files, folder = fetch_fibercup_synth_tracking()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.FIBERCUP_SYNTH_BUNDLING.name:
-        files, folder = fetch_fibercup_synth_bundling()
-        fnames = files[
-            "sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.FIBERCUP_SYNTH_BUNDLE_CENTROIDS.name:
-        files, folder = fetch_fibercup_synth_bundle_centroids()
-        fnames = files[
-            "sub01-dwi_space-orig_desc-synth_subset-bundles_centroid.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.FIBERCUP_BUNDLE_MASKS.name:
-        files, folder = fetch_fibercup_bundle_masks()
-        fnames = files[
-            "sub01-T1w_space-orig_desc-synth_subset-bundles_tractography.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.FIBERCUP_BUNDLE_ENDPOINT_MASKS.name:
-        files, folder = fetch_fibercup_bundle_endpoint_masks()
-        fnames = files[
-            "sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.FIBERCUP_DIFFUSION_PEAKS.name:
-        files, folder = fetch_fibercup_diffusion_peaks()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.FIBERCUP_LOCAL_PROB_TRACKING.name:
-        files, folder = fetch_fibercup_local_prob_tracking()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.FIBERCUP_LOCAL_PROB_BUNDLING.name:
-        files, folder = fetch_fibercup_local_prob_bundling()
-        fnames = files[
-            "sub01-dwi_space-orig_desc-PROB_subset-bundles_tractography.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.FIBERCUP_TRACKING_EVALUATION_CONFIG.name:
-        files, folder = fetch_fibercup_tracking_evaluation_config()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.HCP_TR_ANAT.name:
-        files, folder = fetch_hcp_tr_anat()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.HCP_TR_DTI_MAPS.name:
-        files, folder = fetch_hcp_tr_dti_maps()
-        fnames = files[
-            "sub103818_re-dwi_space-MNI152NLin2009cSym_model-DTI.zip"
-        ][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.HCP_TR_EXCLUDE_INCLUDE_MAPS.name:
-        files, folder = fetch_hcp_tr_exclude_include_maps()
-        fnames = files[
-            "sub103818_re-T1w_space-MNI152NLin2009cSym_exclude_include.zip"
-        ][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.HCP_TR_PVE_MAPS.name:
-        files, folder = fetch_hcp_tr_pve_maps()
-        fnames = files[
-            "sub103818_re-T1w_space-MNI152NLin2009cSym_probseg.zip"
-        ][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.HCP_TR_SURFACES.name:
-        files, folder = fetch_hcp_tr_surfaces()
-        fnames = files[
-            "sub103818_re-T1w_space-MNI152NLin2009cSym_LPS.surf.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.HCP_TR_DIFFUSION_PEAKS.name:
-        files, folder = fetch_hcp_tr_diffusion_peaks()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.HCP_TR_PFT_TRACKING.name:
-        files, folder = fetch_hcp_tr_pft_tracking()
-        return pjoin(folder, list(files.keys())[0])
-    # elif name == Dataset.ISBI2013_ANAT.name:
-    #   files, folder = fetch_isbi2013_anat()
-    #   return pjoin(folder, list(files.keys())[0])  # "T1w.nii.gz")
-    # elif name == Dataset.ISBI2013_DWI.name:
-    #   files, folder = fetch_isbi2013_dwi()
-    #   fraw = pjoin(folder, list(files.keys())[0])  # "dwi.nii.gz")
-    #   fbval = pjoin(folder, list(files.keys())[1])  # ".bval")
-    #   fbvec = pjoin(folder, list(files.keys())[2])  # "bvec")
-    #   return fraw, fbval, fbvec
-    # elif name == Dataset.ISBI2013_TRACTOGRAPHY.name:
-    #   files, folder = fetch_isbi2013_tractography()
-    #   for fname in list(files.keys()):
-    #       fnames = pjoin(folder, fname)
-    #   return fnames
-    elif name == Dataset.ISMRM2015_ANAT.name:
-        files, folder = fetch_ismrm2015_anat()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.ISMRM2015_DTI_MAPS.name:
-        files, folder = fetch_ismrm2015_dti_maps()
-        fnames = files["sub01-dwi_space-orig_desc-WLS_model-DTI.zip"][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISMRM2015_DWI.name:
-        files, folder = fetch_ismrm2015_dwi()
-        fnames = files["sub01-dwi.zip"][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISMRM2015_DWI_PREPROC.name:
-        files, folder = fetch_ismrm2015_dwi_preproc()
-        fnames = files["sub01-dwi_space-orig_res-t1.zip"][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISMRM2015_TISSUE_MAPS.name:
-        files, folder = fetch_ismrm2015_tissue_maps()
-        fnames = files["sub01-T1w_space-orig_dseg.zip"][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISMRM2015_SURFACES.name:
-        files, folder = fetch_ismrm2015_surfaces()
-        fnames = files["sub01-T1w_space-orig_pial.surf.zip"][2]
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISMRM2015_SYNTH_TRACKING.name:
-        files, folder = fetch_ismrm2015_synth_tracking()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.ISMRM2015_SYNTH_BUNDLING.name:
-        files, folder = fetch_ismrm2015_synth_bundling()
-        fnames = files[
-            "sub01-dwi_space-orig_desc-synth_subset-bundles_tractography.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISMRM2015_BUNDLE_MASKS.name:
-        files, folder = fetch_ismrm2015_bundle_masks()
-        fnames = files[
-            "sub01-T1w_space-orig_desc-synth_subset-bundles_tractography.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISMRM2015_BUNDLE_ENDPOINT_MASKS.name:
-        files, folder = fetch_ismrm2015_bundle_endpoint_masks()
-        fnames = files[
-            "sub01-T1w_space-orig_desc-synth_subset-bundles_part-endpoints_tractography.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISMRM2015_CHALLENGE_SUBMISSION.name:
-        files, folder = fetch_ismrm2015_submission_res()
-        fnames = files[
-            "sub02-dwi_space-orig_desc-synth_submission_results_tractography.zip"
-        ][
-            2
-        ]  # noqa E501
-        return sorted([pjoin(folder, f) for f in fnames])
-    elif name == Dataset.ISMRM2015_TRACKING_EVALUATION_CONFIG.name:
-        files, folder = fetch_ismrm2015_tracking_evaluation_config()
-        return pjoin(folder, list(files.keys())[0])
-    elif name == Dataset.MNI2009CNONLINSYMM_ANAT.name:
-        files, folder = fetch_mni2009cnonlinsymm_anat()
-        fnames = files["sub01-T1w.zip"][2]
-        # Exclude the COPYING file
+    params = _get_fetcher_data(name)
+    fetcher_name = _compose_fetcher_name(name)
+    files, folder = _make_fetcher(fetcher_name, *params)()
+
+    file_basename = list(files.keys())[0]
+
+    # Check if the file is a ZIP file
+    if zipfile.is_zipfile(pjoin(folder, file_basename)):
+        fnames = files[file_basename][2]
+        # Exclude the COPYING file if it exists
         fnames = _exclude_dataset_use_permission_files(fnames, "COPYING")
-        return pjoin(folder, fnames[0])
-    elif name == Dataset.MNI2009CNONLINSYMM_SURFACES.name:
-        files, folder = fetch_mni2009cnonlinsymm_surfaces()
-        fnames = files["sub01-T1w_space-orig_pial.surf.zip"][2]
-        # Exclude the COPYING file
-        fnames = _exclude_dataset_use_permission_files(fnames, "COPYING")
-        return sorted([pjoin(folder, f) for f in fnames])
+        if name == Dataset.MNI2009CNONLINSYMM_ANAT.name:
+            return pjoin(folder, fnames[0])
+        else:
+            return sorted([pjoin(folder, f) for f in fnames])
     else:
-        raise DatasetError(_unknown_dataset_msg(name))
+        return pjoin(folder, file_basename)
 
 
 def list_bundles_in_dataset(name):
