@@ -32,12 +32,12 @@ maintainers = [
 ]
 name = "tractodata"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 [project.optional-dependencies]
 test = [
     "hypothesis >= 6.8.0",
-    "pytest == 7.2",
+    "pytest == 7.2.0",
     "pytest-cov",
     "pytest-pep8",
     "pytest-xdist",
@@ -62,7 +62,7 @@ repository = "https://github.com/jhlegarreta/tractodata"
 
 [tool.black]
 line-length = 79
-target-version = ["py38"]
+target-version = ["py310"]
 exclude ='''
 (
   /(
