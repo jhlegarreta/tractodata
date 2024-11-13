@@ -19,9 +19,9 @@ classifiers = [
 dependencies = [
     "dipy",
     "nibabel",
-    "numpy",
+    "numpy < 2.0.0",
     "pandas",
-    "trimeshpy == 0.0.2",
+    "trimeshpy >= 0.0.2",
     "tqdm",
 ]
 description = "Tractography data repository to be used for tractography research"
